@@ -5,18 +5,36 @@ from collections import Counter
 from fuzzywuzzy import fuzz
 import numpy as np
 import datetime
+import jaro
 #%%
 starttime = datetime.datetime.now()
 print("Start: ", starttime)
 
 
 #%% ####################################################################################################################
+#############################################    FILL THIS OUT  ########################################################
+# Client Name (for export Name)
+client_name = 'JARO_FILTERED_NAME'
 # Put the filepath to the GL/Other data
 df_filepath = 'Data/Loan_Name.xlsx'
-c = {'LOAN_NAME'}
+# What column are we comparing?
+dfc = {'LOAN_NAME': 'LOAN_NAME'}
+# IF the column in the LASTNAME, FIRST NAME format, type 'YES'
+df_reverse = 'YES'
 
 # Put the filepath to the related parties
 rp_filepath = 'Data/Related Parties Clean.xlsx'
+# What column are we comparing?
+rpc = {'RP_NAME': 'NAME'} #NAME, OCC, BUS, OTHER
+# Is this column in the LASTNAME, FIRST NAME format?
+rp_reverse = 'NO'
+
+# TODO
+# Remove middle initials?
+# Drop all single letters (middle initials)
+# dhg['Base_Name']= dhg['Base_Name'].str.replace(r'\b\w\b', '').str.replace(r'\s+', ' ')
+# bkd['Base_Name']= bkd['Base_Name'].str.replace(r'\b\w\b', '').str.replace(r'\s+', ' ')
+
 
 ########################################################################################################################
 #%%
@@ -28,80 +46,109 @@ df_filename = df_filepath.split("/")[-1]
 rp_filename = rp_filepath.split("/")[-1]
 
 
-# %% Clean the loan column
-df['LOAN_BASE'] = df['LOAN_NAME'].astype(str)
+# %%
 
-df['LOAN_BASE'] = df['LOAN_BASE'].str.upper()
-df['LOAN_BASE'] = df['LOAN_BASE'].str.strip()
-df['LOAN_BASE'] = df['LOAN_BASE'].str.replace(r'\,', '', regex=True)
-df['LOAN_BASE'] = df['LOAN_BASE'].str.replace(r'\.', '', regex=True)
-df['LOAN_BASE'] = df['LOAN_BASE'].str.replace(r"\'S", "", regex=True)
-
-#%% stop words
+df = df.drop_duplicates(subset=[dfc['LOAN_NAME']])
+# Extract the string from our comparison column and add "_BASE"
+df_base = str(dfc['LOAN_NAME']) + "_BASE"
+# Clean the loan column
+df[dfc['LOAN_NAME']] = df[dfc['LOAN_NAME']].astype(str)
+df[dfc['LOAN_NAME']] = df[dfc['LOAN_NAME']].str.upper()
+df[dfc['LOAN_NAME']] = df[dfc['LOAN_NAME']].str.strip()
+# Create the BASE column off the cleaned column
+df[df_base] = df[dfc['LOAN_NAME']].str.replace(r'\.', '', regex=True) # remove periods
+df[df_base] = df[df_base].str.replace(r"\'S", "", regex=True) # remove 'S
+# Remove slashes and numbers
+df[df_base] = df[df_base].str.replace(r"\/", "", regex=True) # remove slashes
+df[df_base] = df[df_base].str.replace(r"\d+", "", regex=True) # remove numbers
+# TODO we want to remove the LLC/STOPwords before moving this around? Does it matter?
+if df_reverse == 'YES':
+    df[df_base] = df[df_base].apply(lambda x: ' '.join(reversed(x.split(', '))))
+    info_df_reverse = 'The ' + dfc['LOAN_NAME'] + ' column was in LAST, FIRST order which was changed to FIRST LAST'
+else:
+    df[df_base] = df[df_base].str.replace(r'\,', '', regex=True)
+    info_df_reverse = 'The ' + dfc['LOAN_NAME'] + ' column was in FIRST LAST order which was not changed'
+#%% stop words #todo add more stopwords from cleanco package
 stopwords = ['FOUNDATION', 'HOLDINGS', 'MANAGEMENT', 'INVESTMENTS', 'PROPERTIES', 'INTERNATIONAL', 'THE', '401K',
              'PARTNERSHIP', 'LIMITED', 'ENTERPRISES', 'ASSOCIATES', 'PARTNERS', 'INVESTMENT', 'GROUP', 'COMPANY',
-             'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', 'INC', '-', 'AND', '&', 'PLLC']
+             'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', 'INC', '-', 'AND', '&', 'PLLC', 'DTD']
 
 # Drop the stopwords
-df['LOAN_BASE'] = df['LOAN_BASE'].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
+df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
 
 #%% Drop only ESTATE if it is not part of REAL ESTATE
 reallist = ['ESTATE']
-df['LOAN_BASE'] = df['LOAN_BASE'].apply(lambda x: ' '.join([word for word in x.split() if word not in reallist]) if (('ESTATE' in x) & ('REAL ESTATE' not in x)) else x)
-
-#%% do it again after cleaning to see what we've missed
-common_words = pd.DataFrame(Counter(" ".join(df['LOAN_BASE']).split()).most_common(200))
-common_words.columns=['Word','Count']
+df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in reallist]) if (('ESTATE' in x) & ('REAL ESTATE' not in x)) else x)
 
 #%% Clean the RP column
-rp = rp.dropna(subset=['BUS'])
-rp['BUS_BASE'] = rp['BUS'].astype(str)
-rp['BUS_BASE'] = rp['BUS_BASE'].str.upper()
-rp['BUS_BASE'] = rp['BUS_BASE'].str.strip()
-rp['BUS_BASE'] = rp['BUS_BASE'].str.replace(r'\,', '', regex=True)
-rp['BUS_BASE'] = rp['BUS_BASE'].str.replace(r'\.', '', regex=True)
-rp['BUS_BASE'] = rp['BUS_BASE'].str.replace(r"\'S", "", regex=True)
+rp = rp.dropna(subset=[rpc['RP_NAME']])
+rp = rp.drop_duplicates(subset=[rpc['RP_NAME']])
+# Extract the string from our comparison column and add "_BASE"
+rp_base = str(rpc['RP_NAME']) + "_BASE"
+
+# Clean the RP Columns
+rp[rpc['RP_NAME']] = rp[rpc['RP_NAME']].astype(str)
+rp[rpc['RP_NAME']] = rp[rpc['RP_NAME']].str.upper()
+rp[rpc['RP_NAME']] = rp[rpc['RP_NAME']].str.strip()
+# Create the base column off the clean RP NAME column
+rp[rp_base] = rp[rpc['RP_NAME']].str.replace(r'\.', '', regex=True) # Remove periods
+rp[rp_base] = rp[rp_base].str.replace(r"\'S", "", regex=True) # Remove 'S
+# Remove slashes and numbers
+rp[rp_base] = rp[rp_base].str.replace(r"\/", "", regex=True) # Remove slashes
+rp[rp_base] = rp[rp_base].str.replace(r"\d+", "", regex=True) # Remove numbers
+if rp_reverse == 'YES':
+    rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join(reversed(x.split(', ')))) # reverse the order at comma
+    info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in LAST, FIRST order which was changed to FIRST LAST'
+else:
+    rp[rp_base] = rp[rp_base].str.replace(r'\,', '', regex=True) # Remove commas
+    info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in FIRST LAST order which was not changed'
 
 #%% stop words
 # Drop the stopwords
-rp['BUS_BASE'] = rp['BUS_BASE'].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
+rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
 
 #%% Drop only ESTATE if it is not part of REAL ESTATE
 reallist = ['ESTATE']
-rp['BUS_BASE'] = rp['BUS_BASE'].apply(lambda x: ' '.join([word for word in x.split() if word not in reallist]) if (('ESTATE' in x) & ('REAL ESTATE' not in x)) else x)
+rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in reallist]) if (('ESTATE' in x) & ('REAL ESTATE' not in x)) else x)
 
 #%% do it again after cleaning to see what we've missed
-common_words_2 = pd.DataFrame(Counter(" ".join(rp['BUS_BASE']).split()).most_common(200))
+common_words_2 = pd.DataFrame(Counter(" ".join(rp[rp_base]).split()).most_common(200))
 common_words_2.columns=['Word','Count']
 
-#%%
-rp_bus = rp[['BUS', 'BUS_BASE']]
-rp_bus = rp_bus.rename(columns={'BUS': 'RP_BUS'})
-cross_df = df.merge(rp_bus, how='cross')
+#%% keep only the columns of interest
+rp_short = rp[[rpc['RP_NAME'], rp_base]]
+df_short = df[[dfc['LOAN_NAME'], df_base]]
+# Create a cross product
+cross_df = df_short.merge(rp_short, how='cross')
 
-#cross_df = bkd.merge(dhg_AU, how='cross')
-#%%
-
+#%% TODO can get rid of one here (copy)
 matches = cross_df.copy()
-matches['RATIO_BASE'] = matches.apply(lambda x: fuzz.ratio(x['LOAN_BASE'], x['BUS_BASE']), axis=1)
+matches['RATIO_BASE'] = matches.apply(lambda x: fuzz.ratio(x[df_base], x[rp_base]), axis=1)
 
 #%%
-matches = matches[matches['RATIO_BASE']>=60]
-matches['RATIO_ORDER'] = matches.apply(lambda x: fuzz.token_sort_ratio(x['LOAN_BASE'], x['BUS_BASE']), axis=1)
-matches['RATIO_FULL'] = matches.apply(lambda x: fuzz.ratio(x['LOAN_BASE'], x['RP_BUS']), axis=1)
+matches = matches[matches['RATIO_BASE']>=66]
+matches['RATIO_ORDER'] = matches.apply(lambda x: fuzz.token_sort_ratio(x[df_base], x[rp_base]), axis=1)
+matches['RATIO_FULL'] = matches.apply(lambda x: fuzz.ratio(x[dfc['LOAN_NAME']], x[rpc['RP_NAME']]), axis=1)
+matches['JARO_BASE'] = matches.apply(lambda x: round((jaro.jaro_metric(x[df_base], x[rp_base]))*100), axis=1)
+matches['JARO_FULL'] = matches.apply(lambda x: round((jaro.jaro_metric(x[dfc['LOAN_NAME']], x[rpc['RP_NAME']]))*100), axis=1)
+matches['JARO_WINKLER_BASE'] = matches.apply(lambda x: round((jaro.jaro_winkler_metric(x[df_base], x[rp_base]))*100), axis=1)
 
-matches = matches[['RP_BUS','LOAN_NAME', 'LOAN_BASE', 'BUS_BASE', 'RATIO_BASE', 'RATIO_ORDER', 'RATIO_FULL']]
+matches = matches.dropna()
+matches = matches[matches['JARO_WINKLER_BASE']>=80]
+matches = matches[[rpc['RP_NAME'],dfc['LOAN_NAME'], df_base, rp_base, 'RATIO_BASE', 'RATIO_ORDER', 'RATIO_FULL', 'JARO_BASE', 'JARO_FULL', 'JARO_WINKLER_BASE']]
 matches = matches.sort_values(by=['RATIO_BASE', 'RATIO_ORDER'], ascending=(False, False))
 #%%
-InfoDict = {'Sources': ['Names in the XXXX column of the ' + df_filename + ' were compared against names in the XXXX '
-                                                                           'column of the ' + rp_filename],
-    'Drop Words': [str(stopwords)]}
+InfoDict = {'Sources': ['Names in the ' + dfc['LOAN_NAME'] + ' column of the ' + df_filename +
+                        ' were compared against names in the  ' + rpc['RP_NAME'] + ' column of the ' + rp_filename],
+    'Drop Words': [str(stopwords)],
+    'Loan Order': [info_df_reverse],
+    'Related Parties Order': [info_rp_reverse]}
 Info = pd.DataFrame.from_dict(InfoDict, orient='index')
 
 #%%
 # EXPORT
 # Create a Pandas Excel writer using XlsxWriter as the engine.
-writer = pd.ExcelWriter('RelatedPartiesMatchingExample2.xlsx', engine='xlsxwriter')
+writer = pd.ExcelWriter(client_name + '_RelatedParties.xlsx', engine='xlsxwriter')
 
 # Write each dataframe to a different worksheet.
 
@@ -135,7 +182,8 @@ match_worksheet.set_column('A:A', 30, color2_light_format)
 match_worksheet.set_column('B:B', 30, color1_light_format)
 match_worksheet.set_column('C:C', 25, color1_light_format)
 match_worksheet.set_column('D:D', 25, color2_light_format)
-match_worksheet.set_column('E:G', 13, ratio_format)
+match_worksheet.set_column('E:I', 13, ratio_format)
+match_worksheet.set_column('J:J', 19, ratio_format)
 
 
 # Close the Pandas Excel writer and output the Excel file.
