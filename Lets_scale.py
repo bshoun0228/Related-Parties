@@ -14,7 +14,7 @@ print("Start: ", starttime)
 #%% ####################################################################################################################
 #############################################    FILL THIS OUT  ########################################################
 # Client Name (for export Name)
-client_name = 'JARO_FILTERED_NAME'
+client_name = 'JARO_NAME'
 # Put the filepath to the GL/Other data
 df_filepath = 'Data/Loan_Name.xlsx'
 # What column are we comparing?
@@ -134,7 +134,7 @@ matches['JARO_FULL'] = matches.apply(lambda x: round((jaro.jaro_metric(x[dfc['LO
 matches['JARO_WINKLER_BASE'] = matches.apply(lambda x: round((jaro.jaro_winkler_metric(x[df_base], x[rp_base]))*100), axis=1)
 
 matches = matches.dropna()
-matches = matches[matches['JARO_WINKLER_BASE']>=80]
+#matches = matches[matches['JARO_WINKLER_BASE']>=80]
 matches = matches[[rpc['RP_NAME'],dfc['LOAN_NAME'], df_base, rp_base, 'RATIO_BASE', 'RATIO_ORDER', 'RATIO_FULL', 'JARO_BASE', 'JARO_FULL', 'JARO_WINKLER_BASE']]
 matches = matches.sort_values(by=['RATIO_BASE', 'RATIO_ORDER'], ascending=(False, False))
 #%%
