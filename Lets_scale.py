@@ -25,15 +25,9 @@ df_reverse = 'YES'
 # Put the filepath to the related parties
 rp_filepath = 'Data/Related Parties Clean.xlsx'
 # What column are we comparing?
-rpc = {'RP_NAME': 'NAME'} #NAME, OCC, BUS, OTHER
+rpc = {'RP_NAME': 'OTHER'} #NAME, OCC, BUS, OTHER
 # Is this column in the LASTNAME, FIRST NAME format?
 rp_reverse = 'NO'
-
-# TODO
-# Remove middle initials?
-# Drop all single letters (middle initials)
-# dhg['Base_Name']= dhg['Base_Name'].str.replace(r'\b\w\b', '').str.replace(r'\s+', ' ')
-# bkd['Base_Name']= bkd['Base_Name'].str.replace(r'\b\w\b', '').str.replace(r'\s+', ' ')
 
 
 ########################################################################################################################
@@ -57,8 +51,9 @@ df[dfc['LOAN_NAME']] = df[dfc['LOAN_NAME']].str.upper()
 df[dfc['LOAN_NAME']] = df[dfc['LOAN_NAME']].str.strip()
 # Create the BASE column off the cleaned column
 df[df_base] = df[dfc['LOAN_NAME']].str.replace(r'\.', '', regex=True) # remove periods
-df[df_base] = df[df_base].str.replace(r"\'S", "", regex=True) # remove 'S
+df[df_base] = df[df_base].str.replace(r"\'", "", regex=True) # remove apostrophes
 # Remove slashes and numbers
+#todo remove hypens, replace with space, remove double space (strip) -- to do both
 df[df_base] = df[df_base].str.replace(r"\/", "", regex=True) # remove slashes
 df[df_base] = df[df_base].str.replace(r"\d+", "", regex=True) # remove numbers
 # TODO we want to remove the LLC/STOPwords before moving this around? Does it matter?
@@ -71,11 +66,16 @@ else:
 #%% stop words #todo add more stopwords from cleanco package
 stopwords = ['FOUNDATION', 'HOLDINGS', 'MANAGEMENT', 'INVESTMENTS', 'PROPERTIES', 'INTERNATIONAL', 'THE', '401K',
              'PARTNERSHIP', 'LIMITED', 'ENTERPRISES', 'ASSOCIATES', 'PARTNERS', 'INVESTMENT', 'GROUP', 'COMPANY',
-             'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', 'INC', '-', 'AND', '&', 'PLLC', 'DTD']
+             'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', 'INC', '-', 'AND', '&', 'PLLC', 'DTD',
+             ]
+# dodge # ford
+car_brands = ['ACURA', 'AUDI', 'BMW', 'BUICK', 'CADILLAC', 'CHEVROLET', 'CHEVY', 'CHRYSLER', 'FIAT', 'HONDA', 'HYUNDAI',
+              'JAGUAR', 'JEEP', 'KIA', 'LAND ROVER', 'LEXUS', 'MAZDA', 'MERCEDES BENZ', 'MITSUBISHI', 'NISSAN',
+              'PONTIAC', 'PORSHE', 'SATURN', 'SUBARU', 'SUZUKI', 'TESLA', 'TOYOTA', 'VOLKSWAGEN', 'VOLVO']
 
 # Drop the stopwords
 df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
-
+df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in car_brands]))
 #%% Drop only ESTATE if it is not part of REAL ESTATE
 reallist = ['ESTATE']
 df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in reallist]) if (('ESTATE' in x) & ('REAL ESTATE' not in x)) else x)
@@ -92,7 +92,7 @@ rp[rpc['RP_NAME']] = rp[rpc['RP_NAME']].str.upper()
 rp[rpc['RP_NAME']] = rp[rpc['RP_NAME']].str.strip()
 # Create the base column off the clean RP NAME column
 rp[rp_base] = rp[rpc['RP_NAME']].str.replace(r'\.', '', regex=True) # Remove periods
-rp[rp_base] = rp[rp_base].str.replace(r"\'S", "", regex=True) # Remove 'S
+rp[rp_base] = rp[rp_base].str.replace(r"\'", "", regex=True) # Remove apostrophes
 # Remove slashes and numbers
 rp[rp_base] = rp[rp_base].str.replace(r"\/", "", regex=True) # Remove slashes
 rp[rp_base] = rp[rp_base].str.replace(r"\d+", "", regex=True) # Remove numbers
@@ -106,7 +106,7 @@ else:
 #%% stop words
 # Drop the stopwords
 rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
-
+rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in car_brands]))
 #%% Drop only ESTATE if it is not part of REAL ESTATE
 reallist = ['ESTATE']
 rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in reallist]) if (('ESTATE' in x) & ('REAL ESTATE' not in x)) else x)
