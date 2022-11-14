@@ -26,7 +26,7 @@ stopwords = ['FOUNDATION', 'HOLDINGS', 'MANAGEMENT', 'INVESTMENTS', 'PROPERTIES'
              'PARTNERSHIP', 'LIMITED', 'ENTERPRISES', 'ASSOCIATES', 'PARTNERS', 'INVESTMENT', 'GROUP', 'COMPANY',
              'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', 'INC', '-', 'AND', '&', 'PLLC']
 
-# Drop the stopwords
+# Drop the drop_words
 df['LOAN_BASE'] = df['LOAN_BASE'].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
 
 #%% Drop only ESTATE if it is not part of REAL ESTATE
@@ -47,7 +47,7 @@ rp['OCC_BASE'] = rp['OCC_BASE'].str.replace(r'\.', '', regex=True)
 rp['OCC_BASE'] = rp['OCC_BASE'].str.replace(r"\'S", "", regex=True)
 
 #%% stop words
-# Drop the stopwords
+# Drop the drop_words
 rp['OCC_BASE'] = rp['OCC_BASE'].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
 
 #%% Drop only ESTATE if it is not part of REAL ESTATE

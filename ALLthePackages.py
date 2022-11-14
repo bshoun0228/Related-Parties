@@ -68,12 +68,12 @@ if df_reverse == 'YES':
 else:
     df[df_base] = df[df_base].str.replace(r'\,', '', regex=True)
     info_df_reverse = 'The ' + dfc['LOAN_NAME'] + ' column was in FIRST LAST order which was not changed'
-#%% stop words #todo add more stopwords from cleanco package
+#%% stop words #todo add more drop_words from cleanco package
 stopwords = ['FOUNDATION', 'HOLDINGS', 'MANAGEMENT', 'INVESTMENTS', 'PROPERTIES', 'INTERNATIONAL', 'THE', '401K',
              'PARTNERSHIP', 'LIMITED', 'ENTERPRISES', 'ASSOCIATES', 'PARTNERS', 'INVESTMENT', 'GROUP', 'COMPANY',
              'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', 'INC', '-', 'AND', '&', 'PLLC', 'DTD']
 
-# Drop the stopwords
+# Drop the drop_words
 df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
 
 #%% Drop only ESTATE if it is not part of REAL ESTATE
@@ -104,7 +104,7 @@ else:
     info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in FIRST LAST order which was not changed'
 
 #%% stop words
-# Drop the stopwords
+# Drop the drop_words
 rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
 
 #%% Drop only ESTATE if it is not part of REAL ESTATE

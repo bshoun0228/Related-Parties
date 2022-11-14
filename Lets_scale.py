@@ -63,18 +63,21 @@ if df_reverse == 'YES':
 else:
     df[df_base] = df[df_base].str.replace(r'\,', '', regex=True)
     info_df_reverse = 'The ' + dfc['LOAN_NAME'] + ' column was in FIRST LAST order which was not changed'
-#%% stop words #todo add more stopwords from cleanco package
-stopwords = ['FOUNDATION', 'HOLDINGS', 'MANAGEMENT', 'INVESTMENTS', 'PROPERTIES', 'INTERNATIONAL', 'THE', '401K',
+#%% ignore words #todo add more drop_words from cleanco package
+drop_words = ['FOUNDATION', 'HOLDINGS', 'MANAGEMENT', 'INVESTMENTS', 'PROPERTIES', 'INTERNATIONAL', 'THE', '401K',
              'PARTNERSHIP', 'LIMITED', 'ENTERPRISES', 'ASSOCIATES', 'PARTNERS', 'INVESTMENT', 'GROUP', 'COMPANY',
              'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', 'INC', '-', 'AND', '&', 'PLLC', 'DTD',
-             ]
+             'DATED']
+# todo stop words where you read nothing after this:
+stop_words = ['DTD', 'DATED']
+
 # dodge # ford
 car_brands = ['ACURA', 'AUDI', 'BMW', 'BUICK', 'CADILLAC', 'CHEVROLET', 'CHEVY', 'CHRYSLER', 'FIAT', 'HONDA', 'HYUNDAI',
               'JAGUAR', 'JEEP', 'KIA', 'LAND ROVER', 'LEXUS', 'MAZDA', 'MERCEDES BENZ', 'MITSUBISHI', 'NISSAN',
               'PONTIAC', 'PORSHE', 'SATURN', 'SUBARU', 'SUZUKI', 'TESLA', 'TOYOTA', 'VOLKSWAGEN', 'VOLVO']
 
-# Drop the stopwords
-df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
+# Drop the drop_words
+df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in drop_words]))
 df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in car_brands]))
 #%% Drop only ESTATE if it is not part of REAL ESTATE
 reallist = ['ESTATE']
@@ -104,8 +107,8 @@ else:
     info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in FIRST LAST order which was not changed'
 
 #%% stop words
-# Drop the stopwords
-rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in stopwords]))
+# Drop the drop_words
+rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in drop_words]))
 rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in car_brands]))
 #%% Drop only ESTATE if it is not part of REAL ESTATE
 reallist = ['ESTATE']
@@ -140,7 +143,7 @@ matches = matches.sort_values(by=['RATIO_BASE', 'RATIO_ORDER'], ascending=(False
 #%%
 InfoDict = {'Sources': ['Names in the ' + dfc['LOAN_NAME'] + ' column of the ' + df_filename +
                         ' were compared against names in the  ' + rpc['RP_NAME'] + ' column of the ' + rp_filename],
-    'Drop Words': [str(stopwords)],
+    'Drop Words': [str(drop_words)],
     'Loan Order': [info_df_reverse],
     'Related Parties Order': [info_rp_reverse]}
 Info = pd.DataFrame.from_dict(InfoDict, orient='index')
