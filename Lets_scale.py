@@ -148,6 +148,12 @@ InfoDict = {'Sources': ['Names in the ' + dfc['LOAN_NAME'] + ' column of the ' +
     'Related Parties Order': [info_rp_reverse]}
 Info = pd.DataFrame.from_dict(InfoDict, orient='index')
 
+perfect_base_matches = matches[matches['RATIO_BASE'] == 100]
+perfect_full_matches = matches[matches['RATIO_FULL'] == 100]
+likely_matches = matches[(90 <= matches['RATIO_BASE']) & (matches['RATIO_BASE'] < 100)]
+medium_confidence = matches[(80 <= matches['RATIO_BASE']) & (matches['RATIO_BASE'] < 90)]
+low_confidence = matches[(60 <= matches['RATIO_BASE']) & (matches['RATIO_BASE'] < 80)]
+
 #%%
 # EXPORT
 # Create a Pandas Excel writer using XlsxWriter as the engine.
@@ -156,12 +162,18 @@ writer = pd.ExcelWriter(client_name + '_RelatedParties.xlsx', engine='xlsxwriter
 # Write each dataframe to a different worksheet.
 
 Info.to_excel(writer, sheet_name='Information', header=False)
-matches.to_excel(writer, sheet_name='Matches',index=False)
+
+perfect_base_matches.to_excel(writer, sheet_name='Perfect Base Matches', index=False)
+perfect_full_matches.to_excel(writer, sheet_name='Perfect Full Matches', index=False)
+likely_matches.to_excel(writer, sheet_name='Likely Matches', index=False)
+medium_confidence.to_excel(writer, sheet_name='Medium Confidence Matches', index=False)
+low_confidence.to_excel(writer, sheet_name='Low Confidence Matches', index=False)
+
+matches.to_excel(writer, sheet_name='All Matches',index=False)
 
 # Get the xlsxwriter objects from the dataframe writer object.
 workbook = writer.book
 info_worksheet = writer.sheets['Information']
-match_worksheet = writer.sheets['Matches']
 
 # Add some cell formats.
 
@@ -180,13 +192,23 @@ info_worksheet.set_column('A:A', 26)
 info_worksheet.set_column('B:B', 100, format_wrap)
 
 # Set the column width and format
-match_worksheet.freeze_panes(1, 1)
-match_worksheet.set_column('A:A', 30, color2_light_format)
-match_worksheet.set_column('B:B', 30, color1_light_format)
-match_worksheet.set_column('C:C', 25, color1_light_format)
-match_worksheet.set_column('D:D', 25, color2_light_format)
-match_worksheet.set_column('E:I', 13, ratio_format)
-match_worksheet.set_column('J:J', 19, ratio_format)
+def set_match_worksheet_format(match_worksheet_name):
+    match_worksheet = writer.sheets[match_worksheet_name]
+
+    match_worksheet.freeze_panes(1, 1)
+    match_worksheet.set_column('A:A', 30, color2_light_format)
+    match_worksheet.set_column('B:B', 30, color1_light_format)
+    match_worksheet.set_column('C:C', 25, color1_light_format)
+    match_worksheet.set_column('D:D', 25, color2_light_format)
+    match_worksheet.set_column('E:I', 13, ratio_format)
+    match_worksheet.set_column('J:J', 19, ratio_format)
+
+set_match_worksheet_format('Perfect Base Matches')
+set_match_worksheet_format('Perfect Full Matches')
+set_match_worksheet_format('Likely Matches')
+set_match_worksheet_format('Medium Confidence Matches')
+set_match_worksheet_format('Low Confidence Matches')
+set_match_worksheet_format('All Matches')
 
 
 # Close the Pandas Excel writer and output the Excel file.
