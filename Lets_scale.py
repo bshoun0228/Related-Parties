@@ -15,11 +15,11 @@ print("Start: ", starttime)
 # Client Name (for export Name)
 client_name = 'JARO_NAME'
 # Put the filepath to the GL/Other data
-df_filepath = 'Data/Loan_Name.xlsx'
+ln_df_filepath = 'Data/Loan_Name.xlsx'
 # What column are we comparing?
-dfc = {'LOAN_NAME': 'LOAN_NAME'}
+lnc = {'LOAN_NAME': 'LOAN_NAME'}
 # IF the column in the LASTNAME, FIRST NAME format, type 'YES'
-df_reverse = 'YES'
+ln_reverse = 'YES'
 
 # Put the filepath to the related parties
 rp_filepath = 'Data/Related Parties Clean.xlsx'
@@ -30,47 +30,18 @@ rp_reverse = 'NO'
 
 ########################################################################################################################
 #%%
-df = pd.read_excel(df_filepath)
-rp = pd.read_excel(rp_filepath)
+ln_df = pd.read_excel(ln_df_filepath)
+rp_df = pd.read_excel(rp_filepath)
 
 #%% Pull out the filenames for the info tab
-df_filename = df_filepath.split("/")[-1]
+ln_df_filename = ln_df_filepath.split("/")[-1]
 rp_filename = rp_filepath.split("/")[-1]
 
-# %% Clean the DF column
-df = df.drop_duplicates(subset=[dfc['LOAN_NAME']])
-# Extract the string from our comparison column and add "_BASE"
-df_base = str(dfc['LOAN_NAME']) + "_BASE"
-# Clean the loan column
-df[dfc['LOAN_NAME']] = df[dfc['LOAN_NAME']].astype(str)
-df[dfc['LOAN_NAME']] = df[dfc['LOAN_NAME']].str.upper()
-df[dfc['LOAN_NAME']] = df[dfc['LOAN_NAME']].str.strip()
-# Create the BASE column off the cleaned column
-df[df_base] = df[dfc['LOAN_NAME']].str.replace(r'\.', ' ', regex=True) # remove periods
-df[df_base] = df[df_base].str.replace(r"\'", "", regex=True) # remove apostrophes
-# Remove slashes and numbers
-df[df_base] = df[df_base].str.replace(r"\/", " ", regex=True) # remove slashes
-df[df_base] = df[df_base].str.replace(r"\/", " ", regex=True) # remove slashes
-# Remove anything within parenthesis # todo
-
-df[df_base] = df[df_base].str.replace(r"\d+", " ", regex=True) # remove numbers
-df[df_base] = df[df_base].str.replace(r"\-", " ", regex=True) # remove hyphens
-# replace 2 or more spaces with one space
-df[df_base] = df[df_base].apply(lambda x: " ".join(x.split()))
-
-#%%
-if df_reverse == 'YES': # if df_reverse selected as yes, reverse the order of the string at the comma
-    df[df_base] = df[df_base].apply(lambda x: ' '.join(reversed(x.split(', '))))
-    info_df_reverse = 'The ' + dfc['LOAN_NAME'] + ' column was in LAST, FIRST order which was changed to FIRST LAST'
-else: # if df_reverse was not selected as yes, remove the comma
-    df[df_base] = df[df_base].str.replace(r'\,', '', regex=True)
-    info_df_reverse = 'The ' + dfc['LOAN_NAME'] + ' column was in FIRST LAST order which was not changed'
-
-#%% ignore words #todo add more drop_words from cleanco package
+# %% ignore words #todo add more drop_words from cleanco package
 # todo "401 (K)" not removed because two words and numbers removed above... do this before? Dealt with in () above
 drop_words = ['FOUNDATION', 'HOLDINGS', 'MANAGEMENT', 'INVESTMENTS', 'PROPERTIES', 'INTERNATIONAL', 'THE', '401K',
-             'PARTNERSHIP', 'LIMITED', 'ENTERPRISES', 'ASSOCIATES', 'PARTNERS', 'INVESTMENT', 'GROUP', 'COMPANY',
-             'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', 'INC', '-', 'AND', '&', 'PLLC']
+              'PARTNERSHIP', 'LIMITED', 'ENTERPRISES', 'ASSOCIATES', 'PARTNERS', 'INVESTMENT', 'GROUP', 'COMPANY',
+              'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', 'INC', '-', 'AND', '&', 'PLLC']
 
 # Words which you read nothing after when encountered in a string
 stop_words = ['DTD', 'DATED']
@@ -80,88 +51,97 @@ car_brands = ['ACURA', 'AUDI', 'BMW', 'BUICK', 'CADILLAC', 'CHEVROLET', 'CHEVY',
               'JAGUAR', 'JEEP', 'KIA', 'LAND ROVER', 'LEXUS', 'MAZDA', 'MERCEDES BENZ', 'MITSUBISHI', 'NISSAN',
               'PONTIAC', 'PORSCHE', 'SATURN', 'SUBARU', 'SUZUKI', 'TESLA', 'TOYOTA', 'VOLKSWAGEN', 'VOLVO']
 
-# Drop the drop_words
-df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in drop_words]))
-df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in car_brands]))
+# %% Clean the DF column
+def make_base_names(df, original_col, base_col, reverse):
+    # Clean the loan column
+    df[original_col] = df[original_col].astype(str)
+    df[original_col] = df[original_col].str.upper()
+    df[original_col] = df[original_col].str.strip()
+    # Create the BASE column off the cleaned column
+    df[base_col] = df[original_col].str.replace(r'\.', ' ', regex=True) # remove periods
+    df[base_col] = df[base_col].str.replace(r"\'", "", regex=True) # remove apostrophes
+    # Remove slashes and numbers
+    df[base_col] = df[base_col].str.replace(r"\/", " ", regex=True) # remove slashes
+    df[base_col] = df[base_col].str.replace(r"\/", " ", regex=True) # remove slashes
+    # Remove anything within parenthesis # todo
 
+    df[base_col] = df[base_col].str.replace(r"\d+", " ", regex=True) # remove numbers
+    df[base_col] = df[base_col].str.replace(r"\-", " ", regex=True) # remove hyphens
+    # replace 2 or more spaces with one space
+    df[base_col] = df[base_col].apply(lambda x: " ".join(x.split()))
 
+    if reverse == 'YES': # if df_reverse selected as yes, reverse the order of the string at the comma
+        df[base_col] = df[base_col].apply(lambda x: ' '.join(reversed(x.split(', '))))
+    else: # if df_reverse was not selected as yes, remove the comma
+        df[base_col] = df[base_col].str.replace(r'\,', '', regex=True)
 
-#%% Drop only ESTATE if it is not part of REAL ESTATE
-reallist = ['ESTATE']
-df[df_base] = df[df_base].apply(lambda x: ' '.join([word for word in x.split() if word not in reallist]) if (('ESTATE' in x) & ('REAL ESTATE' not in x)) else x)
-#%% Stop reading when you encounter this string. Cannot take multiple arguments, must run twice
-for word in stop_words:
-    df[df_base] = df[df_base].str.partition(word)[0]
+    # Drop the drop_words
+    df[base_col] = df[base_col].apply(lambda x: ' '.join([word for word in x.split() if word not in drop_words]))
+    df[base_col] = df[base_col].apply(lambda x: ' '.join([word for word in x.split() if word not in car_brands]))
+
+    # Drop only ESTATE if it is not part of REAL ESTATE
+    reallist = ['ESTATE']
+    df[base_col] = df[base_col].apply(lambda x: ' '.join([word for word in x.split() if word not in reallist]) if (('ESTATE' in x) & ('REAL ESTATE' not in x)) else x)
+
+    # Stop reading when you encounter this string. Cannot take multiple arguments, so must be looped
+    for word in stop_words:
+        df[base_col] = df[base_col].str.partition(word)[0]
+
+    return df
+
+#%% Clean the DF column
+ln_df = ln_df.drop_duplicates(subset=[lnc['LOAN_NAME']])
+# Extract the string from our comparison column and add "_BASE"
+ln_base = str(lnc['LOAN_NAME']) + "_BASE"
+ln_df = make_base_names(ln_df, lnc['LOAN_NAME'], ln_base, ln_reverse)
 
 #%% Clean the RP column
-rp = rp.dropna(subset=[rpc['RP_NAME']])
-rp = rp.drop_duplicates(subset=[rpc['RP_NAME']])
+rp_df = rp_df.dropna(subset=[rpc['RP_NAME']])
+rp_df = rp_df.drop_duplicates(subset=[rpc['RP_NAME']])
 # Extract the string from our comparison column and add "_BASE"
 rp_base = str(rpc['RP_NAME']) + "_BASE"
-
-# Clean the RP Columns
-rp[rpc['RP_NAME']] = rp[rpc['RP_NAME']].astype(str)
-rp[rpc['RP_NAME']] = rp[rpc['RP_NAME']].str.upper()
-rp[rpc['RP_NAME']] = rp[rpc['RP_NAME']].str.strip()
-# Create the base column off the clean RP NAME column
-rp[rp_base] = rp[rpc['RP_NAME']].str.replace(r'\.', ' ', regex=True) # Remove periods
-rp[rp_base] = rp[rp_base].str.replace(r"\'", "", regex=True) # Remove apostrophes
-# Remove slashes and numbers
-rp[rp_base] = rp[rp_base].str.replace(r"\/", " ", regex=True) # Remove slashes
-rp[rp_base] = rp[rp_base].str.replace(r"\d+", " ", regex=True) # Remove numbers
-rp[rp_base] = rp[rp_base].str.replace(r"\-", " ", regex=True) # Remove hyphens
-# replace 2 or more spaces with one space
-rp[rp_base] = rp[rp_base].apply(lambda x: " ".join(x.split()))
-
-#%%
-if rp_reverse == 'YES': # if rp_reverse selected as yes, reverse the order of the string at the comma
-    rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join(reversed(x.split(', ')))) # reverse the order at comma
-    info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in LAST, FIRST order which was changed to FIRST LAST'
-else: #if rp_reverse was not selected as yes, remove the comma
-    rp[rp_base] = rp[rp_base].str.replace(r'\,', '', regex=True) # Remove commas
-    info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in FIRST LAST order which was not changed'
-
-#%% stop words
-# Drop the drop_words
-rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in drop_words]))
-rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in car_brands]))
-
-#%% Drop only ESTATE if it is not part of REAL ESTATE
-reallist = ['ESTATE']
-rp[rp_base] = rp[rp_base].apply(lambda x: ' '.join([word for word in x.split() if word not in reallist]) if (('ESTATE' in x) & ('REAL ESTATE' not in x)) else x)
-
-#%% Stop reading when you encounter this string. Cannot take multiple arguments, must run twice
-for word in stop_words:
-    rp[rp_base] = rp[rp_base].str.partition(word)[0]
+rp_df = make_base_names(rp_df, rpc['RP_NAME'], rp_base, rp_reverse)
 
 #%% do it again after cleaning to see what we've missed
-common_words_2 = pd.DataFrame(Counter(" ".join(rp[rp_base]).split()).most_common(200))
+common_words_2 = pd.DataFrame(Counter(" ".join(rp_df[rp_base]).split()).most_common(200))
 common_words_2.columns=['Word','Count']
 
 #%% keep only the columns of interest
-rp_short = rp[[rpc['RP_NAME'], rp_base]]
-df_short = df[[dfc['LOAN_NAME'], df_base]]
+rp_short = rp_df[[rpc['RP_NAME'], rp_base]]
+ln_df_short = ln_df[[lnc['LOAN_NAME'], ln_base]]
 # Create a cross product
-cross_df = df_short.merge(rp_short, how='cross')
+cross_df = ln_df_short.merge(rp_short, how='cross')
 
 #%% TODO can get rid of one here (copy)
 matches = cross_df.copy()
-matches['RATIO_BASE'] = matches.apply(lambda x: fuzz.ratio(x[df_base], x[rp_base]), axis=1)
+matches['RATIO_BASE'] = matches.apply(lambda x: fuzz.ratio(x[ln_base], x[rp_base]), axis=1)
 
 #%%
 matches = matches[matches['RATIO_BASE']>=66]
-matches['RATIO_ORDER'] = matches.apply(lambda x: fuzz.token_sort_ratio(x[df_base], x[rp_base]), axis=1)
-matches['RATIO_FULL'] = matches.apply(lambda x: fuzz.ratio(x[dfc['LOAN_NAME']], x[rpc['RP_NAME']]), axis=1)
-matches['JARO_BASE'] = matches.apply(lambda x: round((jaro.jaro_metric(x[df_base], x[rp_base]))*100), axis=1)
-matches['JARO_FULL'] = matches.apply(lambda x: round((jaro.jaro_metric(x[dfc['LOAN_NAME']], x[rpc['RP_NAME']]))*100), axis=1)
-matches['JARO_WINKLER_BASE'] = matches.apply(lambda x: round((jaro.jaro_winkler_metric(x[df_base], x[rp_base]))*100), axis=1)
+matches['RATIO_ORDER'] = matches.apply(lambda x: fuzz.token_sort_ratio(x[ln_base], x[rp_base]), axis=1)
+matches['RATIO_FULL'] = matches.apply(lambda x: fuzz.ratio(x[lnc['LOAN_NAME']], x[rpc['RP_NAME']]), axis=1)
+matches['JARO_BASE'] = matches.apply(lambda x: round((jaro.jaro_metric(x[ln_base], x[rp_base]))*100), axis=1)
+matches['JARO_FULL'] = matches.apply(lambda x: round((jaro.jaro_metric(x[lnc['LOAN_NAME']], x[rpc['RP_NAME']]))*100), axis=1)
+matches['JARO_WINKLER_BASE'] = matches.apply(lambda x: round((jaro.jaro_winkler_metric(x[ln_base], x[rp_base]))*100), axis=1)
 
 matches = matches.dropna()
 #matches = matches[matches['JARO_WINKLER_BASE']>=80]
-matches = matches[[rpc['RP_NAME'],dfc['LOAN_NAME'], df_base, rp_base, 'RATIO_BASE', 'RATIO_ORDER', 'RATIO_FULL', 'JARO_BASE', 'JARO_FULL', 'JARO_WINKLER_BASE']]
+matches = matches[[rpc['RP_NAME'],lnc['LOAN_NAME'], ln_base, rp_base, 'RATIO_BASE', 'RATIO_ORDER', 'RATIO_FULL', 'JARO_BASE', 'JARO_FULL', 'JARO_WINKLER_BASE']]
 matches = matches.sort_values(by=['RATIO_BASE', 'RATIO_ORDER'], ascending=(False, False))
+
 #%%
-InfoDict = {'Sources': ['Names in the ' + dfc['LOAN_NAME'] + ' column of the ' + df_filename +
+if ln_reverse == 'YES': # if df_reverse selected as yes, reverse the order of the string at the comma
+    info_df_reverse = 'The ' + lnc['LOAN_NAME'] + ' column was in LAST, FIRST order which was changed to FIRST LAST'
+else: # if df_reverse was not selected as yes, remove the comma
+    info_df_reverse = 'The ' + lnc['LOAN_NAME'] + ' column was in FIRST LAST order which was not changed'
+
+if rp_reverse == 'YES':
+    info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in LAST, FIRST order which was changed to FIRST LAST'
+else:
+    info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in FIRST LAST order which was not changed'
+
+##%%
+InfoDict = {'Sources': ['Names in the ' + lnc['LOAN_NAME'] + ' column of the ' + ln_df_filename +
                         ' were compared against names in the  ' + rpc['RP_NAME'] + ' column of the ' + rp_filename],
     'Drop Words': [str(drop_words)],
     'Loan Order': [info_df_reverse],
