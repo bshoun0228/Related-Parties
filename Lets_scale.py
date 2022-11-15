@@ -60,13 +60,12 @@ def make_base_names(df, original_col, base_col, reverse):
     # Create the BASE column off the cleaned column
     df[base_col] = df[original_col].str.replace(r'\.', ' ', regex=True) # remove periods
     df[base_col] = df[base_col].str.replace(r"\'", "", regex=True) # remove apostrophes
-    # Remove slashes and numbers
-    df[base_col] = df[base_col].str.replace(r"\/", " ", regex=True) # remove slashes
-    df[base_col] = df[base_col].str.replace(r"\/", " ", regex=True) # remove slashes
     # Remove anything within parenthesis # todo
-
-    df[base_col] = df[base_col].str.replace(r"\d+", " ", regex=True) # remove numbers
+    df[base_col] = df[base_col].str.replace(r"\([^)]*\)", " ", regex=True) # remove slashes
+    # Remove slashes, hyphens, and numbers
+    df[base_col] = df[base_col].str.replace(r"\/", " ", regex=True) # remove slashes
     df[base_col] = df[base_col].str.replace(r"\-", " ", regex=True) # remove hyphens
+    df[base_col] = df[base_col].str.replace(r"\d+", " ", regex=True) # remove numbers
     # replace 2 or more spaces with one space
     df[base_col] = df[base_col].apply(lambda x: " ".join(x.split()))
 
