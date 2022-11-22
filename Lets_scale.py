@@ -40,9 +40,10 @@ rp_filename = rp_filepath.split("/")[-1]
 # %% ignore words #todo add more drop_words from cleanco package
 # todo "401 (K)" not removed because two words and numbers removed above... do this before? Dealt with in () above
 drop_words = ['FOUNDATION', 'HOLDINGS', 'MANAGEMENT', 'INVESTMENTS', 'PROPERTIES', 'INTERNATIONAL', 'THE', '401K',
-             'PARTNERSHIP', 'LIMITED', 'ENTERPRISES', 'ASSOCIATES', 'PARTNERS', 'INVESTMENT', 'GROUP', 'COMPANY',
-             'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', 'INC', '-', 'AND', '&', 'PLLC']
-            # maybe add? per email Irrecvocable, revocable, descendants
+              'PARTNERSHIP', 'LIMITED', 'ENTERPRISES', 'ASSOCIATES', 'PARTNERS', 'INVESTMENT', 'GROUP', 'COMPANY',
+              'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', '-', 'AND', '&',
+              'IRREVOCABLE', 'REVOCABLE', 'DESCENDANTS', 'COMPANY', 'INCORPORATED', 'CORPORATION', 'CORP','INC', 'LTDA',
+              'UNLTD', 'LTD', 'PLLC', 'LLC', 'LLP', 'LLLP', 'LP']
 
 
 # Words which you read nothing after when encountered in a string
