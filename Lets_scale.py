@@ -13,7 +13,7 @@ print("Start: ", starttime)
 #%% ####################################################################################################################
 #############################################    FILL THIS OUT  ########################################################
 # Client Name (for export Name)
-client_name = 'JARO_NAME'
+client_name = 'NAMEa'
 # Put the filepath to the GL/Other data
 ln_df_filepath = 'Data/Loan_Name.xlsx'
 # What column are we comparing?
@@ -123,13 +123,14 @@ matches = matches[matches['RATIO_BASE']>=66]
 #%%
 matches['RATIO_ORDER'] = matches.apply(lambda x: fuzz.token_sort_ratio(x[ln_base], x[rp_base]), axis=1)
 matches['RATIO_FULL'] = matches.apply(lambda x: fuzz.ratio(x[lnc['LOAN_NAME']], x[rpc['RP_NAME']]), axis=1)
-matches['JARO_BASE'] = matches.apply(lambda x: round((jaro.jaro_metric(x[ln_base], x[rp_base]))*100), axis=1)
-matches['JARO_FULL'] = matches.apply(lambda x: round((jaro.jaro_metric(x[lnc['LOAN_NAME']], x[rpc['RP_NAME']]))*100), axis=1)
-matches['JARO_WINKLER_BASE'] = matches.apply(lambda x: round((jaro.jaro_winkler_metric(x[ln_base], x[rp_base]))*100), axis=1)
+#matches['JARO_BASE'] = matches.apply(lambda x: round((jaro.jaro_metric(x[ln_base], x[rp_base]))*100), axis=1)
+#matches['JARO_FULL'] = matches.apply(lambda x: round((jaro.jaro_metric(x[lnc['LOAN_NAME']], x[rpc['RP_NAME']]))*100), axis=1)
+#matches['JARO_WINKLER_BASE'] = matches.apply(lambda x: round((jaro.jaro_winkler_metric(x[ln_base], x[rp_base]))*100), axis=1)
 
 matches = matches.dropna()
 #matches = matches[matches['JARO_WINKLER_BASE']>=80]
-matches = matches[[rpc['RP_NAME'],lnc['LOAN_NAME'], ln_base, rp_base, 'RATIO_BASE', 'RATIO_ORDER', 'RATIO_FULL', 'JARO_BASE', 'JARO_FULL', 'JARO_WINKLER_BASE']]
+#matches = matches[[rpc['RP_NAME'],lnc['LOAN_NAME'], ln_base, rp_base, 'RATIO_BASE', 'RATIO_ORDER', 'RATIO_FULL', 'JARO_BASE', 'JARO_FULL', 'JARO_WINKLER_BASE']]
+matches = matches[[rpc['RP_NAME'],lnc['LOAN_NAME'], ln_base, rp_base, 'RATIO_BASE', 'RATIO_ORDER', 'RATIO_FULL']]
 matches = matches.sort_values(by=['RATIO_BASE', 'RATIO_ORDER'], ascending=(False, False))
 
 #%%
@@ -143,17 +144,6 @@ if rp_reverse == 'YES':
 else:
     info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in FIRST LAST order which was not changed'
 
-#%%
-'''
-InfoDict = {'Sources': ['Names in the ' + lnc['LOAN_NAME'] + ' column of the ' + ln_df_filename +
-                        ' were compared against names in the  ' + rpc['RP_NAME'] + ' column of the ' + rp_filename],
-    'Drop Words': [str(drop_words)],
-    'Car Brands': [str(car_brands)],
-    'Loan Order': [info_df_reverse],
-    'Process': ['Spaces, commas, x were removed. A base name was created and more stuff removed. ']
-    'Related Parties Order': [info_rp_reverse]}
-Info = pd.DataFrame.from_dict(InfoDict, orient='index')
-'''
 #%%
 InfoDict = [['Alterations Made to the Original Name: (fields end in “_FULL”)', ''], ['Removed Punctuation','Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal'],
             ['format changes', 'Forced to all caps'], ['Modified Name Used For Name Matching: (fields end in “_BASE”)',''],['Removed punctuation','Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal, commas*'],
@@ -206,6 +196,7 @@ info_worksheet = writer.sheets['Information']
 formatbold = workbook.add_format({'bold': True})
 format_wrap = workbook.add_format({'text_wrap': True})
 under_border_format = workbook.add_format({'bottom': 1})
+bottom_right_format = workbook.add_format({'bottom': 1, 'right': 1})
 excel_format = workbook.add_format({'bg_color': '#D0E2C5', 'border': True})
 right_format = workbook.add_format({'right': 1})
 color1_format = workbook.add_format({'bg_color': '#b0c4de'})
@@ -224,14 +215,22 @@ info_worksheet.conditional_format(14, 0, 14, 0, {'type': 'formula', 'criteria': 
 info_worksheet.conditional_format(20, 0, 20, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 info_worksheet.conditional_format(27, 0, 27, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 
+info_worksheet.conditional_format(0, 0, 0, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(3, 0, 3, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(13, 0, 13, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(19, 0, 19, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(26, 0, 26, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(30, 0, 30, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+
+# have to format these cells as underline AND right
+info_worksheet.conditional_format(0, 1, 0, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(3, 1, 3, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(13, 1, 13, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(19, 1, 19, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(26, 1, 26, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(30, 1, 30, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+
 info_worksheet.conditional_format(1, 1, 30, 1, {'type': 'formula', 'criteria': 'True', 'format': right_format})
-#todo have to format these cells as underline AND right
-info_worksheet.conditional_format(0, 0, 0, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(3, 0, 3, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(13, 0, 13, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(19, 0, 19, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(26, 0, 26, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(30, 0, 30, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 
 info_worksheet.set_column('B:B', 100, format_wrap)
 
@@ -244,8 +243,8 @@ def set_match_worksheet_format(match_worksheet_name):
     match_worksheet.set_column('B:B', 30, color1_light_format)
     match_worksheet.set_column('C:C', 25, color1_light_format)
     match_worksheet.set_column('D:D', 25, color2_light_format)
-    match_worksheet.set_column('E:I', 13, ratio_format)
-    match_worksheet.set_column('J:J', 19, ratio_format)
+    match_worksheet.set_column('E:G', 13, ratio_format)
+    #match_worksheet.set_column('J:J', 19, ratio_format)
 
 set_match_worksheet_format('Perfect Base Matches')
 set_match_worksheet_format('Perfect Full Matches')
@@ -276,6 +275,3 @@ run_seconds = run_time.total_seconds()
 print("Runtime (HH:MM:SS): ", convert(run_seconds))
 
 #%%
-
-data = [['dom', 10], ['', 15], ['', 14]]
-info = pd.DataFrame(data, columns = ['Name', 'Age'])
