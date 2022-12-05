@@ -120,6 +120,7 @@ matches['RATIO_BASE'] = matches.apply(lambda x: fuzz.ratio(x[ln_base], x[rp_base
 
 #%%
 matches = matches[matches['RATIO_BASE']>=66]
+#%%
 matches['RATIO_ORDER'] = matches.apply(lambda x: fuzz.token_sort_ratio(x[ln_base], x[rp_base]), axis=1)
 matches['RATIO_FULL'] = matches.apply(lambda x: fuzz.ratio(x[lnc['LOAN_NAME']], x[rpc['RP_NAME']]), axis=1)
 matches['JARO_BASE'] = matches.apply(lambda x: round((jaro.jaro_metric(x[ln_base], x[rp_base]))*100), axis=1)
@@ -142,13 +143,36 @@ if rp_reverse == 'YES':
 else:
     info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in FIRST LAST order which was not changed'
 
-##%%
+#%%
+'''
 InfoDict = {'Sources': ['Names in the ' + lnc['LOAN_NAME'] + ' column of the ' + ln_df_filename +
                         ' were compared against names in the  ' + rpc['RP_NAME'] + ' column of the ' + rp_filename],
     'Drop Words': [str(drop_words)],
+    'Car Brands': [str(car_brands)],
     'Loan Order': [info_df_reverse],
+    'Process': ['Spaces, commas, x were removed. A base name was created and more stuff removed. ']
     'Related Parties Order': [info_rp_reverse]}
 Info = pd.DataFrame.from_dict(InfoDict, orient='index')
+'''
+#%%
+InfoDict = [['Alterations Made to the Original Name: (fields end in “_FULL”)', ''], ['Removed Punctuation','Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal'],
+            ['format changes', 'Forced to all caps'], ['Modified Name Used For Name Matching: (fields end in “_BASE”)',''],['Removed punctuation','Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal, commas*'],
+            ['Format changes','Forced to all caps, if manual review of raw data shows names are in last, first name order, names were switched to first name last name form (*comma was removed after this)'],
+            ['Name changes','Drop Words: Words that were stripped from the name to get a more true name assessment score not influenced by these common words'],
+            ['','     Common Words: '+ str(drop_words)],['', '     Car Names: ' + str(car_brands)],['','Stop Words: Only the portion of the name that appeared before these words was kept (E.g. “Gordon Foods Dated: 12/2/2018” returns as “Gordon Foods”)'],
+            ['','     ' + str(stop_words)],['',"Special Instances: Estate (E.g. Caroline Real Estate vs Caroline Estate)"],['',"     ‘Estate’ is removed unless it is part of ‘Real Estate’"],
+            ['Output fields','RATIO_BASE: Lev score of modified loan name compared to modified related party name'],['','RATIO_ORDER: all letters in a name are rearranged into alphabetical order and then compared to the rearranged letters of the other column (Loan name compared to Related Party); a score is then calculated based on how many changes need to be made for them to match'],
+            ['','RATIO_FULL: Lev score of the original names with minor modifications (all caps, removed extra spaces, and all punctuation except for commas)'],
+            ['','JARO_BASE: Jaro score of modified loan name compared to modified related party name'],['','JARO_FULL: Jaro score of the original names with minor modifications (all caps, removed extra spaces, and all punctuation except for commas)'],
+            ['','JARO_WINKLER: Jaro Winkler score of modified loan name compared to modified related party name'], ['Process Summary','Take original names and modify slightly'],
+            ['','Create new column that is much more modified for the purest form of the original name for comparison'],['','Calculate scores based on the most modified names'],
+            ['','Only records that receive a RATIO_BASE of 60 or higher are kept then pushed through the other calculations'], ['','Only records that receive a JARO_WINKLER_BASE of 80 or higher are kept'],
+            ['','Fields ending in FULL were calculated based on the slightly modified original name'],['','Data is sorted by ascending RATIO_BASE and RATIO_ORDER scores'],
+            ['Sheets', 'Perfect Base Matches: RATIO_BASE = 100'], ['','Perfect Full Matches: RATIO_FULL = 100'], ['','Likely Matches: RATIO_BASE >= 90 and <100'],
+            ['', 'Medium Confidence: RATIO_BASE >=60 and <80']]
+#%%
+Info = pd.DataFrame(InfoDict, columns = [' ', 'Details'])
+#%%
 
 perfect_base_matches = matches[matches['RATIO_BASE'] == 100]
 perfect_full_matches = matches[matches['RATIO_FULL'] == 100]
@@ -163,7 +187,7 @@ writer = pd.ExcelWriter(client_name + '_RelatedParties.xlsx', engine='xlsxwriter
 
 # Write each dataframe to a different worksheet.
 
-Info.to_excel(writer, sheet_name='Information', header=False)
+Info.to_excel(writer, sheet_name='Information', index=False)
 
 perfect_base_matches.to_excel(writer, sheet_name='Perfect Base Matches', index=False)
 perfect_full_matches.to_excel(writer, sheet_name='Perfect Full Matches', index=False)
@@ -183,6 +207,7 @@ formatbold = workbook.add_format({'bold': True})
 format_wrap = workbook.add_format({'text_wrap': True})
 under_border_format = workbook.add_format({'bottom': 1})
 excel_format = workbook.add_format({'bg_color': '#D0E2C5', 'border': True})
+right_format = workbook.add_format({'right': 1})
 color1_format = workbook.add_format({'bg_color': '#b0c4de'})
 color1_light_format = workbook.add_format({'bg_color': '#dbe4f0'})
 color2_format = workbook.add_format({'bg_color': '#b1cbbb'})
@@ -190,7 +215,24 @@ color2_light_format = workbook.add_format({'bg_color': 'e0ebe4'})
 ratio_format = workbook.add_format({'bg_color': '#ebebeb'})
 
 # Set column width for Information Sheet
-info_worksheet.set_column('A:A', 26)
+info_worksheet.set_column('A:A', 55)
+# With Row/Column notation you must specify all four cells in the range: (first_row, first_col, last_row, last_col)
+
+info_worksheet.conditional_format(1, 0, 1, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(4, 0, 4, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(14, 0, 14, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(20, 0, 20, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(27, 0, 27, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+
+info_worksheet.conditional_format(1, 1, 30, 1, {'type': 'formula', 'criteria': 'True', 'format': right_format})
+#todo have to format these cells as underline AND right
+info_worksheet.conditional_format(0, 0, 0, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(3, 0, 3, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(13, 0, 13, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(19, 0, 19, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(26, 0, 26, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(30, 0, 30, 1, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+
 info_worksheet.set_column('B:B', 100, format_wrap)
 
 # Set the column width and format
@@ -232,3 +274,8 @@ print("End: ", endtime)
 run_time = (endtime-starttime)
 run_seconds = run_time.total_seconds()
 print("Runtime (HH:MM:SS): ", convert(run_seconds))
+
+#%%
+
+data = [['dom', 10], ['', 15], ['', 14]]
+info = pd.DataFrame(data, columns = ['Name', 'Age'])
