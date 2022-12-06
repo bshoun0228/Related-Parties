@@ -13,7 +13,7 @@ print("Start: ", starttime)
 #%% ####################################################################################################################
 #############################################    FILL THIS OUT  ########################################################
 # Client Name (for export Name)
-client_name = 'NAMEa'
+client_name = 'NAMEnewformatcode'
 # Put the filepath to the GL/Other data
 ln_df_filepath = 'Data/Loan_Name.xlsx'
 # What column are we comparing?
@@ -145,6 +145,7 @@ else:
     info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in FIRST LAST order which was not changed'
 
 #%%
+'''
 InfoDict = [['Alterations Made to the Original Name: (fields end in “_FULL”)', ''], ['Removed Punctuation','Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal'],
             ['format changes', 'Forced to all caps'], ['Modified Name Used For Name Matching: (fields end in “_BASE”)',''],['Removed punctuation','Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal, commas*'],
             ['Format changes','Forced to all caps, if manual review of raw data shows names are in last, first name order, names were switched to first name last name form (*comma was removed after this)'],
@@ -155,6 +156,23 @@ InfoDict = [['Alterations Made to the Original Name: (fields end in “_FULL”)
             ['','RATIO_FULL: Lev score of the original names with minor modifications (all caps, removed extra spaces, and all punctuation except for commas)'],
             ['','JARO_BASE: Jaro score of modified loan name compared to modified related party name'],['','JARO_FULL: Jaro score of the original names with minor modifications (all caps, removed extra spaces, and all punctuation except for commas)'],
             ['','JARO_WINKLER: Jaro Winkler score of modified loan name compared to modified related party name'], ['Process Summary','Take original names and modify slightly'],
+            ['','Create new column that is much more modified for the purest form of the original name for comparison'],['','Calculate scores based on the most modified names'],
+            ['','Only records that receive a RATIO_BASE of 60 or higher are kept then pushed through the other calculations'], ['','Only records that receive a JARO_WINKLER_BASE of 80 or higher are kept'],
+            ['','Fields ending in FULL were calculated based on the slightly modified original name'],['','Data is sorted by ascending RATIO_BASE and RATIO_ORDER scores'],
+            ['Sheets', 'Perfect Base Matches: RATIO_BASE = 100'], ['','Perfect Full Matches: RATIO_FULL = 100'], ['','Likely Matches: RATIO_BASE >= 90 and <100'],
+            ['', 'Medium Confidence: RATIO_BASE >=60 and <80']]
+            
+            '''
+
+InfoDict = [['Alterations Made to the Original Name: (fields end in “_FULL”)', ''], ['Removed Punctuation','Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal'],
+            ['format changes', 'Forced to all caps'], ['Modified Name Used For Name Matching: (fields end in “_BASE”)',''],['Removed punctuation','Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal, commas*'],
+            ['Format changes','Forced to all caps, if manual review of raw data shows names are in last, first name order, names were switched to first name last name form (*comma was removed after this)'],
+            ['Name changes','Drop Words: Words that were stripped from the name to get a more true name assessment score not influenced by these common words'],
+            ['','     Common Words: '+ str(drop_words)],['', '     Car Names: ' + str(car_brands)],['','Stop Words: Only the portion of the name that appeared before these words was kept (E.g. “Gordon Foods Dated: 12/2/2018” returns as “Gordon Foods”)'],
+            ['','     ' + str(stop_words)],['',"Special Instances: Estate (E.g. Caroline Real Estate vs Caroline Estate)"],['',"     ‘Estate’ is removed unless it is part of ‘Real Estate’"],
+            ['Output fields','RATIO_BASE: Lev score of modified loan name compared to modified related party name'],['','RATIO_ORDER: all letters in a name are rearranged into alphabetical order and then compared to the rearranged letters of the other column (Loan name compared to Related Party); a score is then calculated based on how many changes need to be made for them to match'],
+            ['','RATIO_FULL: Lev score of the original names with minor modifications (all caps, removed extra spaces, and all punctuation except for commas)'],
+            ['Process Summary','Take original names and modify slightly'],
             ['','Create new column that is much more modified for the purest form of the original name for comparison'],['','Calculate scores based on the most modified names'],
             ['','Only records that receive a RATIO_BASE of 60 or higher are kept then pushed through the other calculations'], ['','Only records that receive a JARO_WINKLER_BASE of 80 or higher are kept'],
             ['','Fields ending in FULL were calculated based on the slightly modified original name'],['','Data is sorted by ascending RATIO_BASE and RATIO_ORDER scores'],
@@ -208,7 +226,7 @@ ratio_format = workbook.add_format({'bg_color': '#ebebeb'})
 # Set column width for Information Sheet
 info_worksheet.set_column('A:A', 55)
 # With Row/Column notation you must specify all four cells in the range: (first_row, first_col, last_row, last_col)
-
+'''
 info_worksheet.conditional_format(1, 0, 1, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 info_worksheet.conditional_format(4, 0, 4, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 info_worksheet.conditional_format(14, 0, 14, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
@@ -229,8 +247,28 @@ info_worksheet.conditional_format(13, 1, 13, 1, {'type': 'formula', 'criteria': 
 info_worksheet.conditional_format(19, 1, 19, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(26, 1, 26, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(30, 1, 30, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+'''
+info_worksheet.conditional_format(1, 0, 1, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(4, 0, 4, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(14, 0, 14, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(17, 0, 17, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(24, 0, 24, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 
-info_worksheet.conditional_format(1, 1, 30, 1, {'type': 'formula', 'criteria': 'True', 'format': right_format})
+info_worksheet.conditional_format(0, 0, 0, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(3, 0, 3, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(13, 0, 13, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(16, 0, 16, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(23, 0, 23, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(27, 0, 27, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+
+info_worksheet.conditional_format(0, 1, 0, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(3, 1, 3, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(13, 1, 13, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(16, 1, 16, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(23, 1, 23, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(27, 1, 27, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+
+info_worksheet.conditional_format(1, 1, 27, 1, {'type': 'formula', 'criteria': 'True', 'format': right_format})
 
 info_worksheet.set_column('B:B', 100, format_wrap)
 
