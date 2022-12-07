@@ -5,7 +5,6 @@ from collections import Counter
 from fuzzywuzzy import fuzz
 import numpy as np
 import datetime
-import jaro
 
 starttime = datetime.datetime.now()
 print("Start: ", starttime)
@@ -143,29 +142,61 @@ else:
     info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in FIRST LAST order which was not changed'
 
 #%%
-InfoDict = [['Alterations Made to the Original Name: (fields end in “_FULL”)', ''], ['Removed Punctuation','Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal'],
-            ['format changes', 'Forced to all caps'], ['Modified Name Used For Name Matching: (fields end in “_BASE”)',''],['Removed punctuation','Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal, commas*'],
-            ['Format changes','Forced to all caps, if manual review of raw data shows names are in last, first name order, names were switched to first name last name form (*comma was removed after this)'],
-            ['Name changes','Drop Words: Words that were stripped from the name to get a more true name assessment score not influenced by these common words'],
-            ['','     Common Words: '+ str(drop_words)],['', '     Car Names: ' + str(car_brands)],['','Stop Words: Only the portion of the name that appeared before these words was kept (E.g. “Gordon Foods Dated: 12/2/2018” returns as “Gordon Foods”)'],
-            ['','     ' + str(stop_words)],['',"Special Instances: Estate (E.g. Caroline Real Estate vs Caroline Estate)"],['',"     ‘Estate’ is removed unless it is part of ‘Real Estate’"],
-            ['Output fields','RATIO_BASE: Lev score of modified loan name compared to modified related party name'],['','RATIO_ORDER: all letters in a name are rearranged into alphabetical order and then compared to the rearranged letters of the other column (Loan name compared to Related Party); a score is then calculated based on how many changes need to be made for them to match'],
-            ['','RATIO_FULL: Lev score of the original names with minor modifications (all caps, removed extra spaces, and all punctuation except for commas)'],
-            ['Process Summary','Take original names and modify slightly'],
-            ['','Create new column that is much more modified for the purest form of the original name for comparison'],['','Calculate scores based on the most modified names'],
-            ['','Only records that receive a RATIO_BASE of 60 or higher are kept then pushed through the other calculations'], ['','Only records that receive a JARO_WINKLER_BASE of 80 or higher are kept'],
-            ['','Fields ending in FULL were calculated based on the slightly modified original name'],['','Data is sorted by ascending RATIO_BASE and RATIO_ORDER scores'],
-            ['Sheets', 'Perfect Base Matches: RATIO_BASE = 100'], ['','Perfect Full Matches: RATIO_FULL = 100'], ['','Likely Matches: RATIO_BASE >= 90 and <100'],
-            ['', 'Medium Confidence: RATIO_BASE >=60 and <80']]
+low_score_threshold = 60
+medium_score_threshold = 80
+high_score_threshold = 90
+perfect_score_threshold = 100
+
+InfoDict = [
+    ['Alterations Made to the Original Name: (fields end in “_FULL”)', ''],
+        ['Removed punctuation',
+            'Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal'],
+        ['Format changes',
+            'Forced to all caps'],
+    ['Modified Name Used For Name Matching: (fields end in “_BASE”)', ''],
+        ['Removed punctuation',
+            'Periods, apostrophes, slashes, hyphens, numbers, commas*, and extra spaces potentially caused by punctuation removal'],
+        ['Format changes',
+            'Forced to all caps; if manual review of raw data shows names are in last, first name order, names were switched to first name last name form (*commas were removed after this)'],
+        ['Name changes',
+            'Drop Words: Words that were stripped from the name to get a more true name assessment score not influenced by these common words'],
+            ['', '     Common Words: '+ str(drop_words)],
+            ['', '     Car Names: ' + str(car_brands)],
+            ['', 'Stop Words: Only the portion of the name that appeared before these words was kept (E.g. “Gordon Foods Dated: 12/2/2018” returns as “Gordon Foods”)'],
+            ['', '     ' + str(stop_words)],
+            ['', "Special Instances: Estate (E.g. Caroline Real Estate vs Caroline Estate)"],
+            ['', "     ‘Estate’ is removed unless it is part of ‘Real Estate’"],
+    ['Output fields',
+        'RATIO_BASE: Levenshtein score of modified loan name compared to modified related party name'],
+        ['', 'RATIO_ORDER: all letters in a name are rearranged into alphabetical order and then compared to the rearranged letters of the other column (Loan name compared to Related Party); a score is then calculated based on how many changes need to be made for them to match'],
+        ['', 'RATIO_FULL: Lev score of the original names with minor modifications (all caps, removed extra spaces, and all punctuation except for commas)'],
+    ['Process Summary',
+        'Take original names and modify slightly'],
+        ['', 'Get the "base names" from the original names, as described above, in order to more accurately represent each name'],
+        ['', 'Calculate scores based on the base names using the levenshtein ratio'],
+        ['', 'Ignore records that receive a RATIO_BASE lower than ' + str(low_score_threshold)],
+        ['', 'Calculate FULL scores using the only slightly modified original names'],
+        ['', 'Sort the data by ascending RATIO_BASE and RATIO_ORDER scores'],
+    ['Sheets',
+        'Perfect Base Matches: RATIO_BASE = ' + str(perfect_score_threshold)],
+        ['', 'Perfect Full Matches: RATIO_FULL = ' + str(perfect_score_threshold)],
+        ['', 'Likely Matches: RATIO_BASE >= ' + str(high_score_threshold) + ' and < ' + str(perfect_score_threshold)],
+        ['', 'Medium Confidence Matches: RATIO_BASE >= ' + str(medium_score_threshold) + ' and < ' + str(high_score_threshold)],
+        ['', 'Low Confidence Matches: RATIO_BASE >= ' + str(low_score_threshold) + ' and < ' + str(medium_score_threshold)]
+]
+
 #%%
-Info = pd.DataFrame(InfoDict, columns = [' ', 'Details'])
+Info = pd.DataFrame(InfoDict, columns=[' ', 'Details'])
 #%%
 
-perfect_base_matches = matches[matches['RATIO_BASE'] == 100]
-perfect_full_matches = matches[matches['RATIO_FULL'] == 100]
-likely_matches = matches[(90 <= matches['RATIO_BASE']) & (matches['RATIO_BASE'] < 100)]
-medium_confidence = matches[(80 <= matches['RATIO_BASE']) & (matches['RATIO_BASE'] < 90)]
-low_confidence = matches[(60 <= matches['RATIO_BASE']) & (matches['RATIO_BASE'] < 80)]
+perfect_base_matches = matches[matches['RATIO_BASE'] == perfect_score_threshold]
+perfect_full_matches = matches[matches['RATIO_FULL'] == perfect_score_threshold]
+likely_matches = matches[(high_score_threshold <= matches['RATIO_BASE'])
+                         & (matches['RATIO_BASE'] < perfect_score_threshold)]
+medium_confidence = matches[(medium_score_threshold <= matches['RATIO_BASE'])
+                            & (matches['RATIO_BASE'] < high_score_threshold)]
+low_confidence = matches[(low_score_threshold <= matches['RATIO_BASE'])
+                         & (matches['RATIO_BASE'] < medium_score_threshold)]
 
 #%%
 # EXPORT
@@ -203,32 +234,31 @@ color2_light_format = workbook.add_format({'bg_color': 'e0ebe4'})
 ratio_format = workbook.add_format({'bg_color': '#ebebeb'})
 
 # Set column width for Information Sheet
-info_worksheet.set_column('A:A', 55)
+info_worksheet.set_column('A:A', 59)
+info_worksheet.set_column('B:B', 100, format_wrap)
 # With Row/Column notation you must specify all four cells in the range: (first_row, first_col, last_row, last_col)
 
 info_worksheet.conditional_format(1, 0, 1, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 info_worksheet.conditional_format(4, 0, 4, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 info_worksheet.conditional_format(14, 0, 14, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 info_worksheet.conditional_format(17, 0, 17, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
-info_worksheet.conditional_format(24, 0, 24, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(23, 0, 23, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 
 info_worksheet.conditional_format(0, 0, 0, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(3, 0, 3, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(13, 0, 13, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(16, 0, 16, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(23, 0, 23, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(22, 0, 22, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(27, 0, 27, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 
 info_worksheet.conditional_format(0, 1, 0, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(3, 1, 3, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(13, 1, 13, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(16, 1, 16, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
-info_worksheet.conditional_format(23, 1, 23, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(22, 1, 22, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(27, 1, 27, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 
 info_worksheet.conditional_format(1, 1, 27, 1, {'type': 'formula', 'criteria': 'True', 'format': right_format})
-
-info_worksheet.set_column('B:B', 100, format_wrap)
 
 # Set the column width and format
 def set_match_worksheet_format(match_worksheet_name):
