@@ -12,45 +12,53 @@ print("Start: ", starttime)
 #%% ####################################################################################################################
 #############################################    FILL THIS OUT  ########################################################
 # Client Name (for export Name)
-client_name = 'NAME_Demo'
+client_name = 'No_Accounts_Demo'
 # Put the filepath to the GL/Other data
-ln_df_filepath = 'Data/Loan_Name.xlsx'
+ln_df_filepath = r"C:\Git\related-parties\Data\Loan Flat File.xlsx"
 
-# What column are we comparing?
-lnc = {'LOAN_NAME': 'LOAN_NAME'}
-# IF the column in the LASTNAME, FIRST NAME format, type 'YES'
+# What column are we comparing? Enter the column headers for the Customer Name and Account columns
+## If there is no Account column provided, type None
+lnc = {'LOAN_NAME': 'Customer Name', 'ACCOUNTS': None}
+# IF the column in the LASTNAME, FIRST NAME format, type 'YES' (CAPITAL)
 ln_reverse = 'YES'
 
 # Put the filepath to the related parties
-rp_filepath = 'Data/Related Parties Clean.xlsx'
+rp_filepath=r"C:\Git\related-parties\Data\Related Parties Clean.xlsx"
 
 # What column are we comparing?
-rpc = {'RP_NAME': 'NAME'}
+rpc={'RP_NAME':'OTHER'}
 # Is this column in the LASTNAME, FIRST NAME format?
 rp_reverse = 'NO'
 
 ########################################################################################################################
+#%% Read in the data
+ln_df = pd.read_excel(ln_df_filepath, dtype=str)  # Read in the loan file
 #%%
-ln_df = pd.read_excel(ln_df_filepath)
-rp_df = pd.read_excel(rp_filepath)
+if lnc['ACCOUNTS'] == None:
+    ln_df['ACCOUNTS'] = np.nan
+    #lnc.update({'ACCOUNTS': 'ACCOUNTS'})
+
+ln_df = ln_df.rename(columns={lnc['LOAN_NAME']: 'LOAN_NAME', lnc['ACCOUNTS']:'ACCOUNTS'})  # Rename the column
+ln_df = ln_df[['LOAN_NAME', 'ACCOUNTS']]  # only keep that colum
+rp_df = pd.read_excel(rp_filepath)  # Read in the related party file
+rp_df = rp_df.rename(columns={rpc['RP_NAME']:'RELATED_PARTY_NAME'})  # Rename the column
+rp_df = rp_df[['RELATED_PARTY_NAME']]  # Only keep that column
+
 
 #%% Pull out the filenames for the info tab
-ln_df_filename = ln_df_filepath.split("/")[-1]
-rp_filename = rp_filepath.split("/")[-1]
+ln_df_filename = ln_df_filepath.split("\\")[-1]  # Take everything after the last slash - the filename
+rp_filename = rp_filepath.split("\\")[-1]
 
-# %% ignore words #todo add more drop_words from cleanco package
-# todo "401 (K)" not removed because two words and numbers removed above... do this before? Dealt with in () above
+# %% ignore words #NOTE: Real estate is added here for the info tab but is not removed when this list is applied due to space
 drop_words = ['FOUNDATION', 'HOLDINGS', 'MANAGEMENT', 'INVESTMENTS', 'PROPERTIES', 'INTERNATIONAL', 'THE', '401K',
               'PARTNERSHIP', 'LIMITED', 'ENTERPRISES', 'ASSOCIATES', 'PARTNERS', 'INVESTMENT', 'GROUP', 'COMPANY',
               'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', '-', 'AND', '&',
               'IRREVOCABLE', 'REVOCABLE', 'DESCENDANTS', 'TRUST', 'COMPANY', 'INCORPORATED', 'CORPORATION', 'CORP',
-              'INC', 'LTDA', 'UNLTD', 'LTD', 'PLLC', 'LLC', 'LLP', 'LLLP', 'LP']
-
+              'INC', 'LTDA', 'UNLTD', 'LTD', 'PLLC', 'LLC', 'LLP', 'LLLP', 'LP', 'REAL ESTATE']
 
 # Words which you read nothing after when encountered in a string
 stop_words = ['DTD', 'DATED']
 
-# dodge # ford
 car_brands = ['ACURA', 'AUDI', 'BMW', 'BUICK', 'CADILLAC', 'CHEVROLET', 'CHEVY', 'CHRYSLER', 'FIAT', 'GMC', 'HONDA',
               'HYUNDAI', 'JAGUAR', 'JEEP', 'KIA', 'LAND ROVER', 'LEXUS', 'MAZDA', 'MERCEDES BENZ', 'MITSUBISHI',
               'NISSAN', 'PONTIAC', 'PORSCHE', 'SATURN', 'SUBARU', 'SUZUKI', 'TESLA', 'TOYOTA', 'VOLKSWAGEN', 'VOLVO']
@@ -64,12 +72,13 @@ def make_base_names(df, original_col, base_col, reverse):
     # Create the BASE column off the cleaned column
     df[base_col] = df[original_col].str.replace(r'\.', ' ', regex=True) # remove periods
     df[base_col] = df[base_col].str.replace(r"\'", "", regex=True) # remove apostrophes
-    # Remove anything within parenthesis # todo
+    # Remove anything within parenthesis
     df[base_col] = df[base_col].str.replace(r"\([^)]*\)", " ", regex=True) # remove slashes
     # Remove slashes, hyphens, and numbers
     df[base_col] = df[base_col].str.replace(r"\/", " ", regex=True) # remove slashes
     df[base_col] = df[base_col].str.replace(r"\-", " ", regex=True) # remove hyphens
     df[base_col] = df[base_col].str.replace(r"\d+", " ", regex=True) # remove numbers
+    df[base_col] = df[base_col].str.replace(r"REAL ESTATE", " ", regex=True)  # remove REAL ESTATE
     # replace 2 or more spaces with one space
     df[base_col] = df[base_col].apply(lambda x: " ".join(x.split()))
 
@@ -82,52 +91,61 @@ def make_base_names(df, original_col, base_col, reverse):
     df[base_col] = df[base_col].apply(lambda x: ' '.join([word for word in x.split() if word not in drop_words]))
     df[base_col] = df[base_col].apply(lambda x: ' '.join([word for word in x.split() if word not in car_brands]))
 
-    # Drop only ESTATE if it is not part of REAL ESTATE
-    reallist = ['ESTATE']
-    df[base_col] = df[base_col].apply(lambda x: ' '.join([word for word in x.split() if word not in reallist]) if (('ESTATE' in x) & ('REAL ESTATE' not in x)) else x)
-
     # Stop reading when you encounter this string. Cannot take multiple arguments, so must be looped
     for word in stop_words:
         df[base_col] = df[base_col].str.partition(word)[0]
 
     return df
 
+#%%
+
+if lnc['ACCOUNTS'] == None:
+    ln_df = ln_df.dropna(subset=['LOAN_NAME'])  # Drop blank rows
+    ln_df = ln_df.drop_duplicates(subset=['LOAN_NAME'])  # drop duplicates
+else:
+    # Defensive - strip in case of spaces
+    ln_df['ACCOUNTS'] = ln_df['ACCOUNTS'].str.strip()
+
+    # Get a list of all account numbers for each name
+    ln_df = ln_df.groupby(['LOAN_NAME']).agg({'ACCOUNTS': ', '.join}).reset_index()
+
 #%% Clean the DF column
-ln_df = ln_df.drop_duplicates(subset=[lnc['LOAN_NAME']])
-# Extract the string from our comparison column and add "_BASE"
-ln_base = str(lnc['LOAN_NAME']) + "_BASE"
-ln_df = make_base_names(ln_df, lnc['LOAN_NAME'], ln_base, ln_reverse)
+
+ln_df = make_base_names(ln_df, 'LOAN_NAME', 'LOAN_BASE', ln_reverse)  # apply the cleaning function
 
 #%% Clean the RP column
-rp_df = rp_df.dropna(subset=[rpc['RP_NAME']])
-rp_df = rp_df.drop_duplicates(subset=[rpc['RP_NAME']])
-# Extract the string from our comparison column and add "_BASE"
-rp_base = str(rpc['RP_NAME']) + "_BASE"
-rp_df = make_base_names(rp_df, rpc['RP_NAME'], rp_base, rp_reverse)
+rp_df = rp_df.dropna(subset=['RELATED_PARTY_NAME'])
+rp_df = rp_df.drop_duplicates(subset=['RELATED_PARTY_NAME'])
+rp_df = make_base_names(rp_df, 'RELATED_PARTY_NAME', 'RELATED_PARTY_BASE', rp_reverse)
 
 #%% do it again after cleaning to see what we've missed
-common_words_2 = pd.DataFrame(Counter(" ".join(rp_df[rp_base]).split()).most_common(200))
+common_words_2 = pd.DataFrame(Counter(" ".join(rp_df['RELATED_PARTY_BASE']).split()).most_common(200))
 common_words_2.columns=['Word','Count']
 
 #%% keep only the columns of interest
-rp_short = rp_df[[rpc['RP_NAME'], rp_base]]
-ln_df_short = ln_df[[lnc['LOAN_NAME'], ln_base]]
+#rp_short = rp_df[['RELATED_PARTY_NAME', 'RELATED_PARTY_BASE']]
+#ln_df_short = ln_df[['LOAN_NAME', 'LOAN_BASE']]
 # Create a cross product
-cross_df = ln_df_short.merge(rp_short, how='cross')
-
+#cross_df = ln_df_short.merge(rp_short, how='cross')
+cross_df = ln_df.merge(rp_df, how='cross')
 #%% TODO can get rid of one here (copy)
 matches = cross_df.copy()
-matches['RATIO_BASE'] = matches.apply(lambda x: fuzz.ratio(x[ln_base], x[rp_base]), axis=1)
+matches['RATIO_BASE'] = matches.apply(lambda x: fuzz.ratio(x['LOAN_BASE'], x['RELATED_PARTY_BASE']), axis=1)
 
 #%%
-matches = matches[matches['RATIO_BASE']>=66]
+low_score_threshold = 80
+medium_score_threshold = 85
+high_score_threshold = 90
+perfect_score_threshold = 100
+
+matches = matches[matches['RATIO_BASE']>=low_score_threshold]
 #%%
-matches['RATIO_ORDER'] = matches.apply(lambda x: fuzz.token_sort_ratio(x[ln_base], x[rp_base]), axis=1)
-matches['RATIO_FULL'] = matches.apply(lambda x: fuzz.ratio(x[lnc['LOAN_NAME']], x[rpc['RP_NAME']]), axis=1)
+matches['RATIO_ORDER'] = matches.apply(lambda x: fuzz.token_sort_ratio(x['LOAN_BASE'], x['RELATED_PARTY_BASE']), axis=1)
+matches['RATIO_FULL'] = matches.apply(lambda x: fuzz.ratio(x['LOAN_NAME'], x['RELATED_PARTY_NAME']), axis=1)
 
-matches = matches.dropna()
+matches = matches.dropna(how='all', axis=0)
 
-matches = matches[[rpc['RP_NAME'],lnc['LOAN_NAME'], ln_base, rp_base, 'RATIO_BASE', 'RATIO_ORDER', 'RATIO_FULL']]
+matches = matches[['RELATED_PARTY_NAME','LOAN_NAME', 'LOAN_BASE', 'RELATED_PARTY_BASE', 'RATIO_BASE', 'RATIO_ORDER', 'RATIO_FULL', 'ACCOUNTS']]
 matches = matches.sort_values(by=['RATIO_BASE', 'RATIO_ORDER'], ascending=(False, False))
 
 #%%
@@ -142,34 +160,30 @@ else:
     info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in FIRST LAST order which was not changed'
 
 #%%
-low_score_threshold = 60
-medium_score_threshold = 80
-high_score_threshold = 90
-perfect_score_threshold = 100
+if lnc['ACCOUNTS']==None:
+    matches = matches.drop(columns=['ACCOUNTS'])
+#%%
 
 InfoDict = [
-    ['Alterations Made to the Original Name: (fields end in “_FULL”)', ''],
-        ['Removed punctuation',
-            'Periods, apostrophes, slashes, hyphens, numbers, and extra spaces potentially caused by punctuation removal'],
-        ['Format changes',
-            'Forced to all caps'],
-    ['Modified Name Used For Name Matching: (fields end in “_BASE”)', ''],
+    ['Alterations Made to the Original Name:', ''],
+        ['Removed leading and trailing spaces'],
+        ['Format changes', 'Capitalized all characters'],
+    ['Alterations Made to Modified Name: (fields end in “_BASE”)', ''],
         ['Removed punctuation',
             'Periods, apostrophes, slashes, hyphens, numbers, commas*, and extra spaces potentially caused by punctuation removal'],
         ['Format changes',
-            'Forced to all caps; if manual review of raw data shows names are in last, first name order, names were switched to first name last name form (*commas were removed after this)'],
+            'Capitalized all characters; if manual review of raw data shows names are in last, first name order, names were switched to first name last name form (*commas were removed after this)'],
         ['Name changes',
             'Drop Words: Words that were stripped from the name to get a more true name assessment score not influenced by these common words'],
             ['', '     Common Words: '+ str(drop_words)],
             ['', '     Car Names: ' + str(car_brands)],
             ['', 'Stop Words: Only the portion of the name that appeared before these words was kept (E.g. “Gordon Foods Dated: 12/2/2018” returns as “Gordon Foods”)'],
             ['', '     ' + str(stop_words)],
-            ['', "Special Instances: Estate (E.g. Caroline Real Estate vs Caroline Estate)"],
-            ['', "     ‘Estate’ is removed unless it is part of ‘Real Estate’"],
     ['Output fields',
-        'RATIO_BASE: Levenshtein score of modified loan name compared to modified related party name'],
-        ['', 'RATIO_ORDER: all letters in a name are rearranged into alphabetical order and then compared to the rearranged letters of the other column (Loan name compared to Related Party); a score is then calculated based on how many changes need to be made for them to match'],
-        ['', 'RATIO_FULL: Lev score of the original names with minor modifications (all caps, removed extra spaces, and all punctuation except for commas)'],
+        'RATIO_BASE: Levenshtein score of modified loan name (_BASE) compared to modified related party name (_BASE)'],
+        ['', 'RATIO_ORDER: all letters in both modified names (_BASE) are rearranged into alphabetical order and then '
+             'compared (Loan_name_BASE compared to Related_Party_BASE)'],
+        ['', 'RATIO_FULL: Levenshtein score of the original names with minor modifications (all caps, removed leading and trailing spaces)'],
     ['Process Summary',
         'Take original names and modify slightly'],
         ['', 'Get the "base names" from the original names, as described above, in order to more accurately represent each name'],
@@ -182,7 +196,26 @@ InfoDict = [
         ['', 'Perfect Full Matches: RATIO_FULL = ' + str(perfect_score_threshold)],
         ['', 'Likely Matches: RATIO_BASE >= ' + str(high_score_threshold) + ' and < ' + str(perfect_score_threshold)],
         ['', 'Medium Confidence Matches: RATIO_BASE >= ' + str(medium_score_threshold) + ' and < ' + str(high_score_threshold)],
-        ['', 'Low Confidence Matches: RATIO_BASE >= ' + str(low_score_threshold) + ' and < ' + str(medium_score_threshold)]
+        ['', 'Low Confidence Matches: RATIO_BASE >= ' + str(low_score_threshold) + ' and < ' + str(medium_score_threshold)],
+    ['Sources',
+     'Names in the ' + lnc['LOAN_NAME'] + ' column of the ' + ln_df_filename + ' were compared against names in the  '
+     + rpc['RP_NAME'] + ' column of the ' + rp_filename],
+    ['Levenshtein',
+        'For each comparison, a ‘ratio’ was computed which applied python’s FuzzyWuzzy package fuzz.ratio or '
+        'fuzz.token_sort module to each combination. https://pypi.org/project/fuzzywuzzy/ '
+        'Levenshtein distance is the number of changes required to move from the example to target. '
+        'The Fuzz.ratio provides a ratio of 100 or less (100 indicating a perfect match) '
+        'between each ‘Base Name’ combination. For example, when comparing 2 client names “A Razorback Land and Sea '
+        'Holding” against “A Razorback Land and Sea Holdings”, Levenshtein will result in 98 distance ratio. '
+        'A shorter name combination compared to one another will result in a different ratio. '
+        'For example, Razorback vs Razerback will result in 95. A perfect match is ratio of 100.'],
+    ['Modified Name Reasoning (fields end in "_BASE")',
+        'This was performed to reduce common words which would decrease matching efficacy. For example, both '
+        '“A Razorback Land and Sea Company Foundation” and “Razorback Land & Sea Co., LLC” would be reduced to '
+        '“RAZORBACK LAND SEA”.'],
+    ['Accounts (optional)',
+        'If an account column is provided in the loan file, a list of all account numbers associated with a given '
+        'LOAN_NAME is output']
 ]
 
 #%%
@@ -227,10 +260,8 @@ under_border_format = workbook.add_format({'bottom': 1})
 bottom_right_format = workbook.add_format({'bottom': 1, 'right': 1})
 excel_format = workbook.add_format({'bg_color': '#D0E2C5', 'border': True})
 right_format = workbook.add_format({'right': 1})
-color1_format = workbook.add_format({'bg_color': '#b0c4de'})
-color1_light_format = workbook.add_format({'bg_color': '#dbe4f0'})
-color2_format = workbook.add_format({'bg_color': '#b1cbbb'})
-color2_light_format = workbook.add_format({'bg_color': 'e0ebe4'})
+ln_color_format = workbook.add_format({'bg_color': '#dbe4f0'})
+rp_color_format = workbook.add_format({'bg_color': 'e0ebe4'})
 ratio_format = workbook.add_format({'bg_color': '#ebebeb'})
 
 # Set column width for Information Sheet
@@ -240,36 +271,39 @@ info_worksheet.set_column('B:B', 100, format_wrap)
 
 info_worksheet.conditional_format(1, 0, 1, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 info_worksheet.conditional_format(4, 0, 4, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
-info_worksheet.conditional_format(14, 0, 14, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
-info_worksheet.conditional_format(17, 0, 17, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
-info_worksheet.conditional_format(23, 0, 23, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(12, 0, 12, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(15, 0, 15, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(21, 0, 21, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(26, 0, 29, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 
 info_worksheet.conditional_format(0, 0, 0, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(3, 0, 3, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(13, 0, 13, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(16, 0, 16, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(22, 0, 22, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(27, 0, 27, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(11, 0, 11, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(14, 0, 14, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(20, 0, 20, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(25, 0, 29, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 
 info_worksheet.conditional_format(0, 1, 0, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(3, 1, 3, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
-info_worksheet.conditional_format(13, 1, 13, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
-info_worksheet.conditional_format(16, 1, 16, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
-info_worksheet.conditional_format(22, 1, 22, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
-info_worksheet.conditional_format(27, 1, 27, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(11, 1, 11, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(14, 1, 14, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(20, 1, 20, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(25, 1, 29, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 
-info_worksheet.conditional_format(1, 1, 27, 1, {'type': 'formula', 'criteria': 'True', 'format': right_format})
+info_worksheet.conditional_format(1, 1, 25, 1, {'type': 'formula', 'criteria': 'True', 'format': right_format})
 
 # Set the column width and format
 def set_match_worksheet_format(match_worksheet_name):
     match_worksheet = writer.sheets[match_worksheet_name]
 
     match_worksheet.freeze_panes(1, 1)
-    match_worksheet.set_column('A:A', 30, color2_light_format)
-    match_worksheet.set_column('B:B', 30, color1_light_format)
-    match_worksheet.set_column('C:C', 25, color1_light_format)
-    match_worksheet.set_column('D:D', 25, color2_light_format)
+    match_worksheet.set_column('A:A', 30, rp_color_format)
+    match_worksheet.set_column('B:B', 30, ln_color_format)
+    match_worksheet.set_column('C:C', 25, ln_color_format)
+    match_worksheet.set_column('D:D', 25, rp_color_format)
     match_worksheet.set_column('E:G', 13, ratio_format)
+    if lnc['ACCOUNTS'] is not None:
+        match_worksheet.set_column('H:H', 30, ln_color_format)
 
 
 set_match_worksheet_format('Perfect Base Matches')
