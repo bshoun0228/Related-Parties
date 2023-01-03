@@ -14,7 +14,7 @@ print("Start: ", starttime)
 # Client Name (for export Name)
 client_name = 'No_Accounts_Demo'
 # Put the filepath to the GL/Other data
-ln_df_filepath = r"C:\Git\related-parties\Data\Loan Flat File.xlsx"
+ln_df_filepath = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\Data\Loan Flat File.xlsx"
 
 # What column are we comparing? Enter the column headers for the Customer Name and Account columns
 ## If there is no Account column provided, type None
@@ -23,7 +23,7 @@ lnc = {'LOAN_NAME': 'Customer Name', 'ACCOUNTS': None}
 ln_reverse = 'YES'
 
 # Put the filepath to the related parties
-rp_filepath=r"C:\Git\related-parties\Data\Related Parties Clean.xlsx"
+rp_filepath=r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\Data\Related Parties Clean.xlsx"
 
 # What column are we comparing?
 rpc={'RP_NAME':'OTHER'}
@@ -315,7 +315,7 @@ set_match_worksheet_format('All Matches')
 
 
 # Close the Pandas Excel writer and output the Excel file.
-writer.save()
+writer.close()
 
 #%%
 def convert(seconds):
