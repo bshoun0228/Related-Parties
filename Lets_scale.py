@@ -5,6 +5,7 @@ from collections import Counter
 from fuzzywuzzy import fuzz
 import numpy as np
 import datetime
+import os
 
 starttime = datetime.datetime.now()
 print("Start: ", starttime)
@@ -12,21 +13,21 @@ print("Start: ", starttime)
 #%% ####################################################################################################################
 #############################################    FILL THIS OUT  ########################################################
 # Client Name (for export Name)
-client_name = 'No_Accounts_Demo'
+client_name = 'Demo_Result'
 # Put the filepath to the GL/Other data
-ln_df_filepath = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\Data\Loan Flat File.xlsx"
+ln_df_filepath = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\Data\Loan Flat File.xlsx")
 
 # What column are we comparing? Enter the column headers for the Customer Name and Account columns
 ## If there is no Account column provided, type None
-lnc = {'LOAN_NAME': 'Customer Name', 'ACCOUNTS': None}
+lnc = {'LOAN_NAME': 'Customer Name', 'ACCOUNTS': 'Account Number'}
 # IF the column in the LASTNAME, FIRST NAME format, type 'YES' (CAPITAL)
 ln_reverse = 'YES'
 
 # Put the filepath to the related parties
-rp_filepath=r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\Data\Related Parties Clean.xlsx"
+rp_filepath = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\Data\Related Parties Clean.xlsx")
 
 # What column are we comparing?
-rpc={'RP_NAME':'OTHER'}
+rpc={'RP_NAME': 'OTHER'}
 # Is this column in the LASTNAME, FIRST NAME format?
 rp_reverse = 'NO'
 
@@ -233,8 +234,9 @@ low_confidence = matches[(low_score_threshold <= matches['RATIO_BASE'])
 
 #%%
 # EXPORT
+export_path = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\Data")
 # Create a Pandas Excel writer using XlsxWriter as the engine.
-writer = pd.ExcelWriter(client_name + '_RelatedParties.xlsx', engine='xlsxwriter')
+writer = pd.ExcelWriter(export_path + "\\" + client_name + '_RelatedParties.xlsx', engine='xlsxwriter')
 
 # Write each dataframe to a different worksheet.
 
