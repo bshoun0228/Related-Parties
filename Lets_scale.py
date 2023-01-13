@@ -86,6 +86,9 @@ def make_base_names(df, original_col, base_col, reverse):
     df[original_col] = df[original_col].astype(str)
     df[original_col] = df[original_col].str.upper()
     df[original_col] = df[original_col].str.strip()
+    # have to drop duplicates again after cleaning
+    df = df.dropna(subset=[original_col])  # Drop blank rows
+    df = df.drop_duplicates(subset=[original_col])  # drop duplicates
     # Create the BASE column off the cleaned column
     df[base_col] = df[original_col].str.replace(r'\.', ' ', regex=True) # remove periods
     df[base_col] = df[base_col].str.replace(r"\'", "", regex=True) # remove apostrophes
@@ -128,8 +131,11 @@ else:
     ln_df = ln_df.groupby(['LOAN_NAME']).agg({'ACCOUNTS': ', '.join}).reset_index()
     log.write('ACCOUNTS provided, accounts for each duplicative name aggregated \n\n')
 
-ln_count = len(ln_df)
-test0 = pd.Series(ln_df['LOAN_NAME'].unique())
+#%% Clean the DF column
+
+ln_df = make_base_names(ln_df, 'LOAN_NAME', 'LOAN_BASE', ln_reverse)  # apply the cleaning function
+ln_count = len(ln_df)  # have to do this AFTER make_base_names because new duplicates can be created with cleaning
+
 ln_diff = ln_count_before-ln_count
 log.write(str(ln_diff) + " empty or duplicative LOAN_NAME instances found \n")
 log.write(str(ln_count) + " unique non-null LOAN_NAMES for analysis\n")
@@ -138,10 +144,6 @@ if ln_count_before-ln_diff == ln_count:
 else: # TODO test this
     log.write(str(ln_count_before) + " DOES NOT EQUAL " + str(ln_count) + " + " + str(ln_diff) + "\n\n")
 
-
-#%% Clean the DF column
-
-ln_df = make_base_names(ln_df, 'LOAN_NAME', 'LOAN_BASE', ln_reverse)  # apply the cleaning function
 #%% Clean the RP column
 rp_count_before = rp_count
 rp_df = rp_df.dropna(subset=['RELATED_PARTY_NAME'])
@@ -162,13 +164,7 @@ common_words_2.columns=['Word','Count']
 
 #%% keep only the columns of interest
 cross_df = ln_df.merge(rp_df, how='cross')
-
-#%%
-missing = [i for i in ln_df['LOAN_NAME'].unique() if i not in cross_df['LOAN_NAME'].unique()]
-#cross_un = cross_df['LOAN_NAME'].unique()
-#df_un = ln_df['LOAN_NAME'].unique()
-#missing =
-#%% TODO can get rid of one here (copy)
+# TODO can get rid of one here (copy)
 matches = cross_df.copy()
 matches['RATIO_BASE'] = matches.apply(lambda x: fuzz.ratio(x['LOAN_BASE'], x['RELATED_PARTY_BASE']), axis=1)
 
@@ -178,25 +174,44 @@ medium_score_threshold = 85
 high_score_threshold = 90
 perfect_score_threshold = 100
 #%%
+ln_count_before = len(matches['LOAN_NAME'].unique())
+rp_count_before = len(matches['RELATED_PARTY_NAME'].unique())
+
+#%%
+non_matches = matches[matches['RATIO_BASE'] < low_score_threshold]
+matches = matches[matches['RATIO_BASE'] >= low_score_threshold]
+
+#%%
+ln_match_series = pd.Series(matches['LOAN_NAME'].unique(), name='LOAN_NAME')
+ln_nonmatch_series = pd.Series([i for i in non_matches['LOAN_NAME'].unique() if i not in matches['LOAN_NAME'].unique()], name='LOAN_NAME') # Drop any that are in matches
+ln_nonmatch_count = len(ln_nonmatch_series)
 ln_count = len(matches['LOAN_NAME'].unique())
+
+rp_match_series = pd.Series(matches['RELATED_PARTY_NAME'].unique(), name='RELATED_PARTY_NAME')
+rp_nonmatch_series = pd.Series([i for i in non_matches['RELATED_PARTY_NAME'].unique() if i not in matches['RELATED_PARTY_NAME'].unique()], name='RELATED_PARTY_NAME')
+rp_nonmatch_count = len(rp_nonmatch_series)
 rp_count = len(matches['RELATED_PARTY_NAME'].unique())
 
-log.write(str(ln_count) + ' unique LOAN_NAMES were returned from matching algorithm' + '\n')
-log.write(str(rp_count) + ' unique RELATED_PARTY_NAMES were returned from matching algorithm' + '\n')
+non_matches = pd.concat([rp_nonmatch_series, ln_nonmatch_series], axis=1)
+matches_unique = pd.concat([rp_match_series, ln_match_series], axis=1)
 
-#%%
-matches = matches[matches['RATIO_BASE']>=low_score_threshold]
-non_matches = matches[matches['RATIO_BASE']< low_score_threshold]
-#%%
-ln_nonmatch_series = pd.Series(non_matches['LOAN_NAME'].unique())
-ln_nonmatch_count = len(ln_nonmatch_series)
-
-rp_nonmatch_series = pd.Series(non_matches['RELATED_PARTY_NAME'].unique())
-rp_nonmatch_count = len(rp_nonmatch_series)
-
+log.write(str(ln_count_before) + ' unique LOAN_NAMES were returned from matching algorithm with no threshold applied' + '\n')
+log.write(str(ln_count) + ' unique LOAN_NAMES were above matching threshold' + '\n')
 log.write(str(ln_nonmatch_count) + ' unique LOAN_NAMES were under matching threshold \n')
+if ln_count_before-ln_nonmatch_count == ln_count:
+    log.write(str(ln_count_before) + " correctly equals " + str(ln_count) + " + " + str(ln_nonmatch_count) + "\n\n")
+else:  # TODO test this
+    log.write(str(ln_count_before) + " DOES NOT EQUAL " + str(ln_count) + " + " + str(ln_nonmatch_count) + "\n\n")
+
+
+log.write(str(rp_count_before) + ' unique RELATED_PARTY_NAMES were returned from matching algorithm with no threshold applied' + '\n')
+log.write(str(rp_count) + ' unique RELATED_PARTY_NAMES were above matching threshold \n')
 log.write(str(rp_nonmatch_count) + ' unique RELATED_PARTY_NAMES were under matching threshold \n')
-log.write(str('h'))
+if rp_count_before-rp_nonmatch_count == rp_count:
+    log.write(str(rp_count_before) + " correctly equals " + str(rp_count) + " + " + str(rp_nonmatch_count) + "\n\n")
+else: # todo test this
+    log.write(str(rp_count_before) + " DOES NOT EQUAL " + str(rp_count) + " + " + str(rp_nonmatch_count) + "\n\n")
+
 #%%
 matches['RATIO_ORDER'] = matches.apply(lambda x: fuzz.token_sort_ratio(x['LOAN_BASE'], x['RELATED_PARTY_BASE']), axis=1)
 matches['RATIO_FULL'] = matches.apply(lambda x: fuzz.ratio(x['LOAN_NAME'], x['RELATED_PARTY_NAME']), axis=1)
@@ -220,6 +235,16 @@ else:
 #%%
 if lnc['ACCOUNTS']==None:
     matches = matches.drop(columns=['ACCOUNTS'])
+
+#%% Last count for log
+ln_count = len(matches['LOAN_NAME'].unique())
+rp_count = len(matches['RELATED_PARTY_NAME'].unique())
+
+log.write(str(ln_count) + ' unique LOAN_NAMES were export to Above Threshold worksheet' + '\n')
+log.write(str(ln_nonmatch_count) + ' unique LOAN_NAMES were export to the Below Threshold worksheet' + '\n\n')
+
+log.write(str(rp_count) + ' unique RELATED_PARTY_NAMES were export to Above Threshold worksheet' + '\n')
+log.write(str(rp_nonmatch_count) + ' unique RELATED_PARTY_NAMES were export to the Below Threshold worksheet' + '\n\n')
 #%%
 
 InfoDict = [
@@ -304,12 +329,15 @@ perfect_full_matches.to_excel(writer, sheet_name='Perfect Full Matches', index=F
 likely_matches.to_excel(writer, sheet_name='Likely Matches', index=False)
 medium_confidence.to_excel(writer, sheet_name='Medium Confidence Matches', index=False)
 low_confidence.to_excel(writer, sheet_name='Low Confidence Matches', index=False)
-
 matches.to_excel(writer, sheet_name='All Matches',index=False)
+matches_unique.to_excel(writer, sheet_name='Above Threshold', index=False)
+non_matches.to_excel(writer, sheet_name='Below Threshold', index=False)
 
 # Get the xlsxwriter objects from the dataframe writer object.
 workbook = writer.book
 info_worksheet = writer.sheets['Information']
+below_worksheet = writer.sheets['Below Threshold']
+above_worksheet = writer.sheets['Above Threshold']
 
 # Add some cell formats.
 
@@ -372,6 +400,14 @@ set_match_worksheet_format('Medium Confidence Matches')
 set_match_worksheet_format('Low Confidence Matches')
 set_match_worksheet_format('All Matches')
 
+# format non_matches
+below_worksheet.freeze_panes(1, 1)
+below_worksheet.set_column('A:A', 30, rp_color_format)
+below_worksheet.set_column('B:B', 30, ln_color_format)
+
+above_worksheet.freeze_panes(1, 1)
+above_worksheet.set_column('A:A', 30, rp_color_format)
+above_worksheet.set_column('B:B', 30, ln_color_format)
 
 # Close the Pandas Excel writer and output the Excel file.
 writer.close()
