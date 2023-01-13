@@ -13,7 +13,9 @@ print("Start: ", starttime)
 #%% ####################################################################################################################
 #############################################    FILL THIS OUT  ########################################################
 # Client Name (for export Name)
-client_name = 'Demo_Result'
+client_name = 'Newtab'  # what do you want files named?
+export_path = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\Data")  # where you want results
+
 # Put the filepath to the GL/Other data
 ln_df_filepath = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\Data\Loan Flat File.xlsx")
 
@@ -32,8 +34,22 @@ rpc={'RP_NAME': 'OTHER'}
 rp_reverse = 'NO'
 
 ########################################################################################################################
+#%%
+logname = export_path + '\\' + client_name + " Related Parties Log.txt"
+
+# Have to initiate logger after getting client name so that can export log with including client name
+log = open(logname, "a+")
+log.write("-----RELATED PARTIES ANALYSIS RUN: " + datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + " -----\n\n")
+
+
 #%% Read in the data
 ln_df = pd.read_excel(ln_df_filepath, dtype=str)  # Read in the loan file
+ln_count = len(ln_df)
+log.write("Loan number of rows read in from file: " + str(ln_count) + '\n')
+
+rp_df = pd.read_excel(rp_filepath)  # Read in the related party file
+rp_count = len(rp_df)
+log.write("Related Parties number of rows read in from file: " + str(rp_count) + '\n\n')
 #%%
 if lnc['ACCOUNTS'] == None:
     ln_df['ACCOUNTS'] = np.nan
@@ -41,7 +57,7 @@ if lnc['ACCOUNTS'] == None:
 
 ln_df = ln_df.rename(columns={lnc['LOAN_NAME']: 'LOAN_NAME', lnc['ACCOUNTS']:'ACCOUNTS'})  # Rename the column
 ln_df = ln_df[['LOAN_NAME', 'ACCOUNTS']]  # only keep that colum
-rp_df = pd.read_excel(rp_filepath)  # Read in the related party file
+
 rp_df = rp_df.rename(columns={rpc['RP_NAME']:'RELATED_PARTY_NAME'})  # Rename the column
 rp_df = rp_df[['RELATED_PARTY_NAME']]  # Only keep that column
 
@@ -99,24 +115,45 @@ def make_base_names(df, original_col, base_col, reverse):
     return df
 
 #%%
+ln_count_before = ln_count
 
 if lnc['ACCOUNTS'] == None:
     ln_df = ln_df.dropna(subset=['LOAN_NAME'])  # Drop blank rows
     ln_df = ln_df.drop_duplicates(subset=['LOAN_NAME'])  # drop duplicates
+    log.write('No ACCOUNTS given, duplicates evaluated on LOAN_NAME \n\n')
 else:
     # Defensive - strip in case of spaces
     ln_df['ACCOUNTS'] = ln_df['ACCOUNTS'].str.strip()
-
     # Get a list of all account numbers for each name
     ln_df = ln_df.groupby(['LOAN_NAME']).agg({'ACCOUNTS': ', '.join}).reset_index()
+    log.write('ACCOUNTS provided, accounts for each duplicative name aggregated \n\n')
+
+ln_count = len(ln_df)
+test0 = pd.Series(ln_df['LOAN_NAME'].unique())
+ln_diff = ln_count_before-ln_count
+log.write(str(ln_diff) + " empty or duplicative LOAN_NAME instances found \n")
+log.write(str(ln_count) + " unique non-null LOAN_NAMES for analysis\n")
+if ln_count_before-ln_diff == ln_count:
+    log.write(str(ln_count_before) + " correctly equals " + str(ln_count) + " + " + str(ln_diff) + "\n\n")
+else: # TODO test this
+    log.write(str(ln_count_before) + " DOES NOT EQUAL " + str(ln_count) + " + " + str(ln_diff) + "\n\n")
+
 
 #%% Clean the DF column
 
 ln_df = make_base_names(ln_df, 'LOAN_NAME', 'LOAN_BASE', ln_reverse)  # apply the cleaning function
-
 #%% Clean the RP column
+rp_count_before = rp_count
 rp_df = rp_df.dropna(subset=['RELATED_PARTY_NAME'])
 rp_df = rp_df.drop_duplicates(subset=['RELATED_PARTY_NAME'])
+rp_count = len(rp_df)
+rp_diff = rp_count_before-rp_count
+log.write(str(rp_diff) + " empty or duplicative RELATED_PARTY_NAME instances found \n")
+log.write(str(rp_count) + " unique non-null RELATED_PARTY_NAMES for analysis\n")
+if rp_count_before-rp_diff == rp_count:
+    log.write(str(rp_count_before) + " correctly equals " + str(rp_count) + " + " + str(rp_diff) + "\n\n")
+else: # todo make sure else works - alter data
+    log.write(str(rp_count_before) + " DOES NOT EQUAL "+ str(rp_count) + " + " + str(rp_diff) + "\n\n")
 rp_df = make_base_names(rp_df, 'RELATED_PARTY_NAME', 'RELATED_PARTY_BASE', rp_reverse)
 
 #%% do it again after cleaning to see what we've missed
@@ -124,11 +161,13 @@ common_words_2 = pd.DataFrame(Counter(" ".join(rp_df['RELATED_PARTY_BASE']).spli
 common_words_2.columns=['Word','Count']
 
 #%% keep only the columns of interest
-#rp_short = rp_df[['RELATED_PARTY_NAME', 'RELATED_PARTY_BASE']]
-#ln_df_short = ln_df[['LOAN_NAME', 'LOAN_BASE']]
-# Create a cross product
-#cross_df = ln_df_short.merge(rp_short, how='cross')
 cross_df = ln_df.merge(rp_df, how='cross')
+
+#%%
+missing = [i for i in ln_df['LOAN_NAME'].unique() if i not in cross_df['LOAN_NAME'].unique()]
+#cross_un = cross_df['LOAN_NAME'].unique()
+#df_un = ln_df['LOAN_NAME'].unique()
+#missing =
 #%% TODO can get rid of one here (copy)
 matches = cross_df.copy()
 matches['RATIO_BASE'] = matches.apply(lambda x: fuzz.ratio(x['LOAN_BASE'], x['RELATED_PARTY_BASE']), axis=1)
@@ -138,8 +177,26 @@ low_score_threshold = 80
 medium_score_threshold = 85
 high_score_threshold = 90
 perfect_score_threshold = 100
+#%%
+ln_count = len(matches['LOAN_NAME'].unique())
+rp_count = len(matches['RELATED_PARTY_NAME'].unique())
 
+log.write(str(ln_count) + ' unique LOAN_NAMES were returned from matching algorithm' + '\n')
+log.write(str(rp_count) + ' unique RELATED_PARTY_NAMES were returned from matching algorithm' + '\n')
+
+#%%
 matches = matches[matches['RATIO_BASE']>=low_score_threshold]
+non_matches = matches[matches['RATIO_BASE']< low_score_threshold]
+#%%
+ln_nonmatch_series = pd.Series(non_matches['LOAN_NAME'].unique())
+ln_nonmatch_count = len(ln_nonmatch_series)
+
+rp_nonmatch_series = pd.Series(non_matches['RELATED_PARTY_NAME'].unique())
+rp_nonmatch_count = len(rp_nonmatch_series)
+
+log.write(str(ln_nonmatch_count) + ' unique LOAN_NAMES were under matching threshold \n')
+log.write(str(rp_nonmatch_count) + ' unique RELATED_PARTY_NAMES were under matching threshold \n')
+log.write(str('h'))
 #%%
 matches['RATIO_ORDER'] = matches.apply(lambda x: fuzz.token_sort_ratio(x['LOAN_BASE'], x['RELATED_PARTY_BASE']), axis=1)
 matches['RATIO_FULL'] = matches.apply(lambda x: fuzz.ratio(x['LOAN_NAME'], x['RELATED_PARTY_NAME']), axis=1)
@@ -234,7 +291,7 @@ low_confidence = matches[(low_score_threshold <= matches['RATIO_BASE'])
 
 #%%
 # EXPORT
-export_path = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\Data")
+
 # Create a Pandas Excel writer using XlsxWriter as the engine.
 writer = pd.ExcelWriter(export_path + "\\" + client_name + '_RelatedParties.xlsx', engine='xlsxwriter')
 
@@ -319,6 +376,10 @@ set_match_worksheet_format('All Matches')
 # Close the Pandas Excel writer and output the Excel file.
 writer.close()
 
+
+log.write("\n")
+log.write("\n")
+log.close()
 #%%
 def convert(seconds):
     seconds = seconds % (24 * 3600)
