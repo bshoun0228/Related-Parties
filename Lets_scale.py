@@ -13,7 +13,7 @@ print("Start: ", starttime)
 #%% ####################################################################################################################
 #############################################    FILL THIS OUT  ########################################################
 # Client Name (for export Name)
-client_name = 'Newtab'  # what do you want files named?
+client_name = 'NewOutputExample'  # what do you want files named?
 export_path = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\Data")  # where you want results
 
 # Put the filepath to the GL/Other data
@@ -21,7 +21,7 @@ ln_df_filepath = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties E
 
 # What column are we comparing? Enter the column headers for the Customer Name and Account columns
 ## If there is no Account column provided, type None
-lnc = {'LOAN_NAME': 'Customer Name', 'ACCOUNTS': 'Account Number'}
+lnc = {'LOAN_NAME': 'Customer Name', 'ACCOUNTS': None}
 # IF the column in the LASTNAME, FIRST NAME format, type 'YES' (CAPITAL)
 ln_reverse = 'YES'
 
@@ -84,11 +84,12 @@ car_brands = ['ACURA', 'AUDI', 'BMW', 'BUICK', 'CADILLAC', 'CHEVROLET', 'CHEVY',
 # %% Clean the DF column
 def make_base_names(df, original_col, base_col, reverse):
     # Clean the loan column
+    df = df.dropna(subset=[original_col]) # do before the turning into string
     df[original_col] = df[original_col].astype(str)
     df[original_col] = df[original_col].str.upper()
     df[original_col] = df[original_col].str.strip()
     # have to drop duplicates again after cleaning
-    df = df.dropna(subset=[original_col])  # Drop blank rows
+    df = df.dropna(subset=[original_col])  # Drop blank rows again after
     #df = df.drop_duplicates(subset=[original_col, 'ACCOUNTS'])  # drop duplicates
     # Create the BASE column off the cleaned column
     df[base_col] = df[original_col].str.replace(r'\.', ' ', regex=True) # remove periods
@@ -143,9 +144,10 @@ ln_count = len(ln_df)  # have to do this AFTER make_base_names because new dupli
 ln_diff = ln_count_before-ln_count
 log.write( datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_diff) + " empty or duplicative LOAN_NAME instances found \n")
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count) + " unique non-null LOAN_NAMES for analysis\n")
+
 if ln_count_before-ln_diff == ln_count:
     log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count_before) + " correctly equals " + str(ln_count) + " + " + str(ln_diff) + "\n\n")
-else: # TODO test this
+else:
     log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [WARNING]: ' + str(ln_count_before) + " DOES NOT EQUAL " + str(ln_count) + " + " + str(ln_diff) + "\n\n")
 
 #%% Clean the RP column
@@ -158,9 +160,10 @@ rp_count = len(rp_df)
 rp_diff = rp_count_before-rp_count
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_diff) + " empty or duplicative RELATED_PARTY_NAME instances found \n")
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count) + " unique non-null RELATED_PARTY_NAMES for analysis\n")
+
 if rp_count_before-rp_diff == rp_count:
     log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count_before) + " correctly equals " + str(rp_count) + " + " + str(rp_diff) + "\n\n")
-else: # todo make sure else works - alter data
+else:
     log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [WARNING]: ' + str(rp_count_before) + " DOES NOT EQUAL "+ str(rp_count) + " + " + str(rp_diff) + "\n\n")
 
 
@@ -204,18 +207,20 @@ rp_count = len(matches['RELATED_PARTY_NAME'].unique())
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count_before) + ' unique LOAN_NAMES were returned from matching algorithm with no threshold applied' + '\n')
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count) + ' unique LOAN_NAMES were above matching threshold' + '\n')
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_nonmatch_count) + ' unique LOAN_NAMES were under matching threshold \n')
+
 if ln_count_before-ln_nonmatch_count == ln_count:
     log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count_before) + " correctly equals " + str(ln_count) + " + " + str(ln_nonmatch_count) + "\n\n")
-else:  # TODO test this
+else:
     log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [WARNING]: ' + str(ln_count_before) + " DOES NOT EQUAL " + str(ln_count) + " + " + str(ln_nonmatch_count) + "\n\n")
 
 
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count_before) + ' unique RELATED_PARTY_NAMES were returned from matching algorithm with no threshold applied' + '\n')
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count) + ' unique RELATED_PARTY_NAMES were above matching threshold \n')
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_nonmatch_count) + ' unique RELATED_PARTY_NAMES were under matching threshold \n')
+
 if rp_count_before-rp_nonmatch_count == rp_count:
     log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count_before) + " correctly equals " + str(rp_count) + " + " + str(rp_nonmatch_count) + "\n\n")
-else: # todo test this
+else:
     log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [WARNING]: ' + str(rp_count_before) + " DOES NOT EQUAL " + str(rp_count) + " + " + str(rp_nonmatch_count) + "\n\n")
 
 #%%
