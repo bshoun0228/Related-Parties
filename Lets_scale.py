@@ -132,7 +132,8 @@ else:
     ln_df['ACCOUNTS'] = ln_df['ACCOUNTS'].str.strip()
     # Get a list of all account numbers for each name
     ln_df = ln_df.groupby(['LOAN_NAME', 'LOAN_BASE']).agg({'ACCOUNTS': ', '.join}).reset_index()
-    log.write('ACCOUNTS provided, accounts for each duplicative name aggregated \n\n')
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ACCOUNTS provided, accounts for each '
+                                                                      'duplicative name aggregated \n\n')
 
 #%% Clean the DF column
 
@@ -140,12 +141,12 @@ else:
 ln_count = len(ln_df)  # have to do this AFTER make_base_names because new duplicates can be created with cleaning
 
 ln_diff = ln_count_before-ln_count
-log.write(str(ln_diff) + " empty or duplicative LOAN_NAME instances found \n")
-log.write(str(ln_count) + " unique non-null LOAN_NAMES for analysis\n")
+log.write( datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_diff) + " empty or duplicative LOAN_NAME instances found \n")
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count) + " unique non-null LOAN_NAMES for analysis\n")
 if ln_count_before-ln_diff == ln_count:
-    log.write(str(ln_count_before) + " correctly equals " + str(ln_count) + " + " + str(ln_diff) + "\n\n")
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count_before) + " correctly equals " + str(ln_count) + " + " + str(ln_diff) + "\n\n")
 else: # TODO test this
-    log.write(str(ln_count_before) + " DOES NOT EQUAL " + str(ln_count) + " + " + str(ln_diff) + "\n\n")
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [WARNING]: ' + str(ln_count_before) + " DOES NOT EQUAL " + str(ln_count) + " + " + str(ln_diff) + "\n\n")
 
 #%% Clean the RP column
 rp_count_before = rp_count
@@ -155,12 +156,12 @@ rp_df = rp_df.dropna(subset=['RELATED_PARTY_NAME'])
 rp_df = rp_df.drop_duplicates(subset=['RELATED_PARTY_NAME'])
 rp_count = len(rp_df)
 rp_diff = rp_count_before-rp_count
-log.write(str(rp_diff) + " empty or duplicative RELATED_PARTY_NAME instances found \n")
-log.write(str(rp_count) + " unique non-null RELATED_PARTY_NAMES for analysis\n")
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_diff) + " empty or duplicative RELATED_PARTY_NAME instances found \n")
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count) + " unique non-null RELATED_PARTY_NAMES for analysis\n")
 if rp_count_before-rp_diff == rp_count:
-    log.write(str(rp_count_before) + " correctly equals " + str(rp_count) + " + " + str(rp_diff) + "\n\n")
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count_before) + " correctly equals " + str(rp_count) + " + " + str(rp_diff) + "\n\n")
 else: # todo make sure else works - alter data
-    log.write(str(rp_count_before) + " DOES NOT EQUAL "+ str(rp_count) + " + " + str(rp_diff) + "\n\n")
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [WARNING]: ' + str(rp_count_before) + " DOES NOT EQUAL "+ str(rp_count) + " + " + str(rp_diff) + "\n\n")
 
 
 #%% do it again after cleaning to see what we've missed
@@ -200,22 +201,22 @@ rp_count = len(matches['RELATED_PARTY_NAME'].unique())
 #non_matches = pd.concat([rp_nonmatch_series, ln_nonmatch_series], axis=1)
 #matches_unique = pd.concat([rp_match_series, ln_match_series], axis=1)
 
-log.write(str(ln_count_before) + ' unique LOAN_NAMES were returned from matching algorithm with no threshold applied' + '\n')
-log.write(str(ln_count) + ' unique LOAN_NAMES were above matching threshold' + '\n')
-log.write(str(ln_nonmatch_count) + ' unique LOAN_NAMES were under matching threshold \n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count_before) + ' unique LOAN_NAMES were returned from matching algorithm with no threshold applied' + '\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count) + ' unique LOAN_NAMES were above matching threshold' + '\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_nonmatch_count) + ' unique LOAN_NAMES were under matching threshold \n')
 if ln_count_before-ln_nonmatch_count == ln_count:
-    log.write(str(ln_count_before) + " correctly equals " + str(ln_count) + " + " + str(ln_nonmatch_count) + "\n\n")
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count_before) + " correctly equals " + str(ln_count) + " + " + str(ln_nonmatch_count) + "\n\n")
 else:  # TODO test this
-    log.write(str(ln_count_before) + " DOES NOT EQUAL " + str(ln_count) + " + " + str(ln_nonmatch_count) + "\n\n")
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [WARNING]: ' + str(ln_count_before) + " DOES NOT EQUAL " + str(ln_count) + " + " + str(ln_nonmatch_count) + "\n\n")
 
 
-log.write(str(rp_count_before) + ' unique RELATED_PARTY_NAMES were returned from matching algorithm with no threshold applied' + '\n')
-log.write(str(rp_count) + ' unique RELATED_PARTY_NAMES were above matching threshold \n')
-log.write(str(rp_nonmatch_count) + ' unique RELATED_PARTY_NAMES were under matching threshold \n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count_before) + ' unique RELATED_PARTY_NAMES were returned from matching algorithm with no threshold applied' + '\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count) + ' unique RELATED_PARTY_NAMES were above matching threshold \n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_nonmatch_count) + ' unique RELATED_PARTY_NAMES were under matching threshold \n')
 if rp_count_before-rp_nonmatch_count == rp_count:
-    log.write(str(rp_count_before) + " correctly equals " + str(rp_count) + " + " + str(rp_nonmatch_count) + "\n\n")
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count_before) + " correctly equals " + str(rp_count) + " + " + str(rp_nonmatch_count) + "\n\n")
 else: # todo test this
-    log.write(str(rp_count_before) + " DOES NOT EQUAL " + str(rp_count) + " + " + str(rp_nonmatch_count) + "\n\n")
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [WARNING]: ' + str(rp_count_before) + " DOES NOT EQUAL " + str(rp_count) + " + " + str(rp_nonmatch_count) + "\n\n")
 
 #%%
 matches['RATIO_ORDER'] = matches.apply(lambda x: fuzz.token_sort_ratio(x['LOAN_BASE'], x['RELATED_PARTY_BASE']), axis=1)
@@ -245,11 +246,11 @@ if lnc['ACCOUNTS']==None:
 ln_count = len(matches['LOAN_NAME'].unique())
 rp_count = len(matches['RELATED_PARTY_NAME'].unique())
 
-log.write(str(ln_count) + ' unique LOAN_NAMES were export to Above Threshold worksheet' + '\n')
-log.write(str(ln_nonmatch_count) + ' unique LOAN_NAMES were export to the Below Threshold worksheet' + '\n\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count) + ' unique LOAN_NAMES were export to Above Threshold worksheet' + '\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_nonmatch_count) + ' unique LOAN_NAMES were export to the Below Threshold worksheet' + '\n\n')
 
-log.write(str(rp_count) + ' unique RELATED_PARTY_NAMES were export to Above Threshold worksheet' + '\n')
-log.write(str(rp_nonmatch_count) + ' unique RELATED_PARTY_NAMES were export to the Below Threshold worksheet' + '\n\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count) + ' unique RELATED_PARTY_NAMES were export to Above Threshold worksheet' + '\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_nonmatch_count) + ' unique RELATED_PARTY_NAMES were export to the Below Threshold worksheet' + '\n\n')
 #%%
 
 InfoDict = [
