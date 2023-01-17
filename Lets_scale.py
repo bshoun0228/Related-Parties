@@ -41,13 +41,14 @@ logname = export_path + '\\' + client_name + " Related Parties Log.txt"
 log = open(logname, "a+")
 log.write("-----RELATED PARTIES ANALYSIS RUN: " + datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + " -----\n\n")
 
-
 #%% Read in the data
 ln_df = pd.read_excel(ln_df_filepath, dtype=str)  # Read in the loan file
+ln_df_raw = ln_df.copy()
 ln_count = len(ln_df)
 log.write("Loan number of rows read in from file: " + str(ln_count) + '\n')
 
 rp_df = pd.read_excel(rp_filepath)  # Read in the related party file
+rp_df_raw = rp_df.copy()
 rp_count = len(rp_df)
 log.write("Related Parties number of rows read in from file: " + str(rp_count) + '\n\n')
 #%%
@@ -55,12 +56,12 @@ if lnc['ACCOUNTS'] == None:
     ln_df['ACCOUNTS'] = np.nan
     #lnc.update({'ACCOUNTS': 'ACCOUNTS'})
 
-ln_df = ln_df.rename(columns={lnc['LOAN_NAME']: 'LOAN_NAME', lnc['ACCOUNTS']:'ACCOUNTS'})  # Rename the column
+ln_df = ln_df.rename(columns={lnc['LOAN_NAME']: 'LOAN_NAME', lnc['ACCOUNTS']: 'ACCOUNTS'})  # Rename the column
 ln_df = ln_df[['LOAN_NAME', 'ACCOUNTS']]  # only keep that colum
+ln_df['ACCOUNTS'] = ln_df['ACCOUNTS'].astype(str) # defensive - make sure it is a string for comma separated list
 
 rp_df = rp_df.rename(columns={rpc['RP_NAME']:'RELATED_PARTY_NAME'})  # Rename the column
 rp_df = rp_df[['RELATED_PARTY_NAME']]  # Only keep that column
-
 
 #%% Pull out the filenames for the info tab
 ln_df_filename = ln_df_filepath.split("\\")[-1]  # Take everything after the last slash - the filename
@@ -88,7 +89,7 @@ def make_base_names(df, original_col, base_col, reverse):
     df[original_col] = df[original_col].str.strip()
     # have to drop duplicates again after cleaning
     df = df.dropna(subset=[original_col])  # Drop blank rows
-    df = df.drop_duplicates(subset=[original_col])  # drop duplicates
+    #df = df.drop_duplicates(subset=[original_col, 'ACCOUNTS'])  # drop duplicates
     # Create the BASE column off the cleaned column
     df[base_col] = df[original_col].str.replace(r'\.', ' ', regex=True) # remove periods
     df[base_col] = df[base_col].str.replace(r"\'", "", regex=True) # remove apostrophes
@@ -119,6 +120,8 @@ def make_base_names(df, original_col, base_col, reverse):
 
 #%%
 ln_count_before = ln_count
+# Apply the cleaning function BEFORE aggregation/drop duplicates (cleaning may make new duplicates
+ln_df = make_base_names(ln_df, 'LOAN_NAME', 'LOAN_BASE', ln_reverse)  # apply the cleaning function
 
 if lnc['ACCOUNTS'] == None:
     ln_df = ln_df.dropna(subset=['LOAN_NAME'])  # Drop blank rows
@@ -128,12 +131,12 @@ else:
     # Defensive - strip in case of spaces
     ln_df['ACCOUNTS'] = ln_df['ACCOUNTS'].str.strip()
     # Get a list of all account numbers for each name
-    ln_df = ln_df.groupby(['LOAN_NAME']).agg({'ACCOUNTS': ', '.join}).reset_index()
+    ln_df = ln_df.groupby(['LOAN_NAME', 'LOAN_BASE']).agg({'ACCOUNTS': ', '.join}).reset_index()
     log.write('ACCOUNTS provided, accounts for each duplicative name aggregated \n\n')
 
 #%% Clean the DF column
 
-ln_df = make_base_names(ln_df, 'LOAN_NAME', 'LOAN_BASE', ln_reverse)  # apply the cleaning function
+
 ln_count = len(ln_df)  # have to do this AFTER make_base_names because new duplicates can be created with cleaning
 
 ln_diff = ln_count_before-ln_count
@@ -146,6 +149,8 @@ else: # TODO test this
 
 #%% Clean the RP column
 rp_count_before = rp_count
+# apply function BEFORE drop duplicates
+rp_df = make_base_names(rp_df, 'RELATED_PARTY_NAME', 'RELATED_PARTY_BASE', rp_reverse)
 rp_df = rp_df.dropna(subset=['RELATED_PARTY_NAME'])
 rp_df = rp_df.drop_duplicates(subset=['RELATED_PARTY_NAME'])
 rp_count = len(rp_df)
@@ -156,11 +161,11 @@ if rp_count_before-rp_diff == rp_count:
     log.write(str(rp_count_before) + " correctly equals " + str(rp_count) + " + " + str(rp_diff) + "\n\n")
 else: # todo make sure else works - alter data
     log.write(str(rp_count_before) + " DOES NOT EQUAL "+ str(rp_count) + " + " + str(rp_diff) + "\n\n")
-rp_df = make_base_names(rp_df, 'RELATED_PARTY_NAME', 'RELATED_PARTY_BASE', rp_reverse)
+
 
 #%% do it again after cleaning to see what we've missed
-common_words_2 = pd.DataFrame(Counter(" ".join(rp_df['RELATED_PARTY_BASE']).split()).most_common(200))
-common_words_2.columns=['Word','Count']
+#common_words_2 = pd.DataFrame(Counter(" ".join(rp_df['RELATED_PARTY_BASE']).split()).most_common(200))
+#common_words_2.columns=['Word','Count']
 
 #%% keep only the columns of interest
 cross_df = ln_df.merge(rp_df, how='cross')
@@ -192,8 +197,8 @@ rp_nonmatch_series = pd.Series([i for i in non_matches['RELATED_PARTY_NAME'].uni
 rp_nonmatch_count = len(rp_nonmatch_series)
 rp_count = len(matches['RELATED_PARTY_NAME'].unique())
 
-non_matches = pd.concat([rp_nonmatch_series, ln_nonmatch_series], axis=1)
-matches_unique = pd.concat([rp_match_series, ln_match_series], axis=1)
+#non_matches = pd.concat([rp_nonmatch_series, ln_nonmatch_series], axis=1)
+#matches_unique = pd.concat([rp_match_series, ln_match_series], axis=1)
 
 log.write(str(ln_count_before) + ' unique LOAN_NAMES were returned from matching algorithm with no threshold applied' + '\n')
 log.write(str(ln_count) + ' unique LOAN_NAMES were above matching threshold' + '\n')
@@ -330,14 +335,18 @@ likely_matches.to_excel(writer, sheet_name='Likely Matches', index=False)
 medium_confidence.to_excel(writer, sheet_name='Medium Confidence Matches', index=False)
 low_confidence.to_excel(writer, sheet_name='Low Confidence Matches', index=False)
 matches.to_excel(writer, sheet_name='All Matches',index=False)
-matches_unique.to_excel(writer, sheet_name='Above Threshold', index=False)
-non_matches.to_excel(writer, sheet_name='Below Threshold', index=False)
+#matches_unique.to_excel(writer, sheet_name='Above Threshold', index=False)
+#non_matches.to_excel(writer, sheet_name='Below Threshold', index=False)
+ln_df_raw.to_excel(writer, sheet_name='Loans Evaluated', index=False)
+rp_df_raw.to_excel(writer, sheet_name='Related Parties Evaluated', index=False)
 
 # Get the xlsxwriter objects from the dataframe writer object.
 workbook = writer.book
 info_worksheet = writer.sheets['Information']
-below_worksheet = writer.sheets['Below Threshold']
-above_worksheet = writer.sheets['Above Threshold']
+ln_df_raw = writer.sheets['Loans Evaluated']
+rp_raw_worksheet = writer.sheets['Related Parties Evaluated']
+#orksheet = writer.sheets['Below Threshold']
+#above_worksheet = writer.sheets['Above Threshold']
 
 # Add some cell formats.
 
@@ -401,13 +410,13 @@ set_match_worksheet_format('Low Confidence Matches')
 set_match_worksheet_format('All Matches')
 
 # format non_matches
-below_worksheet.freeze_panes(1, 1)
-below_worksheet.set_column('A:A', 30, rp_color_format)
-below_worksheet.set_column('B:B', 30, ln_color_format)
+#below_worksheet.freeze_panes(1, 1)
+#below_worksheet.set_column('A:A', 30, rp_color_format)
+#below_worksheet.set_column('B:B', 30, ln_color_format)
 
-above_worksheet.freeze_panes(1, 1)
-above_worksheet.set_column('A:A', 30, rp_color_format)
-above_worksheet.set_column('B:B', 30, ln_color_format)
+#above_worksheet.freeze_panes(1, 1)
+#above_worksheet.set_column('A:A', 30, rp_color_format)
+#above_worksheet.set_column('B:B', 30, ln_color_format)
 
 # Close the Pandas Excel writer and output the Excel file.
 writer.close()
