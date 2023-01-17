@@ -45,12 +45,12 @@ log.write("-----RELATED PARTIES ANALYSIS RUN: " + datetime.datetime.now().strfti
 ln_df = pd.read_excel(ln_df_filepath, dtype=str)  # Read in the loan file
 ln_df_raw = ln_df.copy()
 ln_count = len(ln_df)
-log.write("Loan number of rows read in from file: " + str(ln_count) + '\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + "Loan number of rows read in from file: " + str(ln_count) + '\n')
 
 rp_df = pd.read_excel(rp_filepath)  # Read in the related party file
 rp_df_raw = rp_df.copy()
 rp_count = len(rp_df)
-log.write("Related Parties number of rows read in from file: " + str(rp_count) + '\n\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + "Related Parties number of rows read in from file: " + str(rp_count) + '\n\n')
 #%%
 if lnc['ACCOUNTS'] == None:
     ln_df['ACCOUNTS'] = np.nan
@@ -246,11 +246,16 @@ if lnc['ACCOUNTS']==None:
 ln_count = len(matches['LOAN_NAME'].unique())
 rp_count = len(matches['RELATED_PARTY_NAME'].unique())
 
-log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count) + ' unique LOAN_NAMES were export to Above Threshold worksheet' + '\n')
-log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_nonmatch_count) + ' unique LOAN_NAMES were export to the Below Threshold worksheet' + '\n\n')
+#log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count) + ' unique LOAN_NAMES were export to Above Threshold worksheet' + '\n')
+#log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_nonmatch_count) + ' unique LOAN_NAMES were export to the Below Threshold worksheet' + '\n\n')
 
-log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count) + ' unique RELATED_PARTY_NAMES were export to Above Threshold worksheet' + '\n')
-log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_nonmatch_count) + ' unique RELATED_PARTY_NAMES were export to the Below Threshold worksheet' + '\n\n')
+#log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count) + ' unique RELATED_PARTY_NAMES were export to Above Threshold worksheet' + '\n')
+#log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_nonmatch_count) + ' unique RELATED_PARTY_NAMES were export to the Below Threshold worksheet' + '\n\n')
+
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(len(ln_df_raw)) + ' LOAN_NAMES '
+                                            'were evaluated and export to the "Loans Evaluated" worksheet' + '\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(len(rp_df_raw)) + ' RELATED_PARTY_NAMES '
+                                            'were evaluated and export to the "Related Parties Evaluated" worksheet' + '\n')
 #%%
 
 InfoDict = [
@@ -286,6 +291,9 @@ InfoDict = [
         ['', 'Likely Matches: RATIO_BASE >= ' + str(high_score_threshold) + ' and < ' + str(perfect_score_threshold)],
         ['', 'Medium Confidence Matches: RATIO_BASE >= ' + str(medium_score_threshold) + ' and < ' + str(high_score_threshold)],
         ['', 'Low Confidence Matches: RATIO_BASE >= ' + str(low_score_threshold) + ' and < ' + str(medium_score_threshold)],
+        ['', 'All Matches: RATIO_BASE>= ' + str(low_score_threshold)],
+        ['', 'Loans Evaluated: all loans and corresponding information evaluated'],
+        ['', 'Related Parties Evaluated: all related parties and corresponding information evaluated'],
     ['Sources',
      'Names in the ' + lnc['LOAN_NAME'] + ' column of the ' + ln_df_filename + ' were compared against names in the  '
      + rpc['RP_NAME'] + ' column of the ' + rp_filename],
@@ -371,21 +379,21 @@ info_worksheet.conditional_format(4, 0, 4, 0, {'type': 'formula', 'criteria': 'T
 info_worksheet.conditional_format(12, 0, 12, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 info_worksheet.conditional_format(15, 0, 15, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 info_worksheet.conditional_format(21, 0, 21, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
-info_worksheet.conditional_format(26, 0, 29, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(26, 0, 32, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 
 info_worksheet.conditional_format(0, 0, 0, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(3, 0, 3, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(11, 0, 11, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(14, 0, 14, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(20, 0, 20, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(25, 0, 29, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(28, 0, 32, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 
 info_worksheet.conditional_format(0, 1, 0, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(3, 1, 3, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(11, 1, 11, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(14, 1, 14, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(20, 1, 20, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
-info_worksheet.conditional_format(25, 1, 29, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(28, 1, 32, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 
 info_worksheet.conditional_format(1, 1, 25, 1, {'type': 'formula', 'criteria': 'True', 'format': right_format})
 
