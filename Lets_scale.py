@@ -13,23 +13,23 @@ print("Start: ", starttime)
 #%% ####################################################################################################################
 #############################################    FILL THIS OUT  ########################################################
 # Client Name (for export Name)
-client_name = 'NewOutputExample'  # what do you want files named?
-export_path = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\Data")  # where you want results
+client_name = 'BigExample'  # what do you want files named?
+export_path = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples")  # where you want results
 
 # Put the filepath to the GL/Other data
-ln_df_filepath = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\Data\Loan Flat File.xlsx")
+ln_df_filepath = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\South State\Loan Trial Balance_clean.csv")
 
 # What column are we comparing? Enter the column headers for the Customer Name and Account columns
 ## If there is no Account column provided, type None
-lnc = {'LOAN_NAME': 'Customer Name', 'ACCOUNTS': None}
+lnc = {'LOAN_NAME': 'Name', 'ACCOUNTS': 'Note_Number'}
 # IF the column in the LASTNAME, FIRST NAME format, type 'YES' (CAPITAL)
-ln_reverse = 'YES'
+ln_reverse = 'NO'
 
 # Put the filepath to the related parties
-rp_filepath = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\Data\Related Parties Clean.xlsx")
+rp_filepath = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\South State\Noncharge Related Party Listing Cleaned_2.xlsx")
 
 # What column are we comparing?
-rpc={'RP_NAME': 'OTHER'}
+rpc={'RP_NAME': 'FORVIS Cleaned Up Name Column'}
 # Is this column in the LASTNAME, FIRST NAME format?
 rp_reverse = 'NO'
 
@@ -42,7 +42,7 @@ log = open(logname, "a+")
 log.write("-----RELATED PARTIES ANALYSIS RUN: " + datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + " -----\n\n")
 
 #%% Read in the data
-ln_df = pd.read_excel(ln_df_filepath, dtype=str)  # Read in the loan file
+ln_df = pd.read_csv(ln_df_filepath, dtype=str)  # Read in the loan file
 ln_df_raw = ln_df.copy()
 ln_count = len(ln_df)
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + "Loan number of rows read in from file: " + str(ln_count) + '\n')
