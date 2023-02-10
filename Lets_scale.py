@@ -13,23 +13,23 @@ print("Start: ", starttime)
 #%% ####################################################################################################################
 #############################################    FILL THIS OUT  ########################################################
 # Client Name (for export Name)
-client_name = 'BigExample'  # what do you want files named?
-export_path = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples")  # where you want results
+client_name = 'SouthState DDA '  # what do you want files named?
+export_path = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\2022 SouthState\Exports"  # where you want results
 
 # Put the filepath to the GL/Other data
-ln_df_filepath = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\South State\Loan Trial Balance_clean.csv")
+ln_df_filepath = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\2022 SouthState\Deposit COD Flat File for 12-31-2022 Audit v2 (3).xlsx"
 
 # What column are we comparing? Enter the column headers for the Customer Name and Account columns
 ## If there is no Account column provided, type None
-lnc = {'LOAN_NAME': 'Name', 'ACCOUNTS': 'Note_Number'}
+lnc = {'LOAN_NAME': 'Primary Name', 'ACCOUNTS': 'Tax Id Number'}
 # IF the column in the LASTNAME, FIRST NAME format, type 'YES' (CAPITAL)
 ln_reverse = 'NO'
 
 # Put the filepath to the related parties
-rp_filepath = os.path.expanduser(r"~\OneDrive - FORVIS, LLP\Related Parties Examples\South State\Noncharge Related Party Listing Cleaned_2.xlsx")
+rp_filepath = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\2022 SouthState\SouthState Related Parties (DAG).xlsx"
 
 # What column are we comparing?
-rpc={'RP_NAME': 'FORVIS Cleaned Up Name Column'}
+rpc={'RP_NAME': 'Related Parties Names'}
 # Is this column in the LASTNAME, FIRST NAME format?
 rp_reverse = 'NO'
 
@@ -42,7 +42,7 @@ log = open(logname, "a+")
 log.write("-----RELATED PARTIES ANALYSIS RUN: " + datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + " -----\n\n")
 
 #%% Read in the data
-ln_df = pd.read_csv(ln_df_filepath, dtype=str)  # Read in the loan file
+ln_df = pd.read_excel(ln_df_filepath, dtype=str)  # Read in the loan file
 ln_df_raw = ln_df.copy()
 ln_count = len(ln_df)
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + "Loan number of rows read in from file: " + str(ln_count) + '\n')
@@ -173,9 +173,32 @@ else:
 
 #%% keep only the columns of interest
 cross_df = ln_df.merge(rp_df, how='cross')
-# TODO can get rid of one here (copy)
-matches = cross_df.copy()
-matches['RATIO_BASE'] = matches.apply(lambda x: fuzz.ratio(x['LOAN_BASE'], x['RELATED_PARTY_BASE']), axis=1)
+
+cross_df['RATIO_BASE'] = cross_df.apply(lambda x: fuzz.ratio(x['LOAN_BASE'], x['RELATED_PARTY_BASE']), axis=1)
+
+#%% Random Sample
+
+# by using sample with 100%, then you randomize entire dataframe
+sample = cross_df.sample(frac=1).reset_index(drop=True)
+
+# Drop duplicates - so only one instance of each related party name
+sample = sample.drop_duplicates(subset=['RELATED_PARTY_BASE'])
+# Drop duplicates - so only one instance of each loan name
+sample = sample.drop_duplicates(subset=['LOAN_BASE'])
+# Change the column order for formatting
+sample = sample[['RELATED_PARTY_NAME','LOAN_NAME', 'LOAN_BASE', 'RELATED_PARTY_BASE', 'RATIO_BASE', 'ACCOUNTS']]
+# Grab 10 random
+sam_len = len(sample)
+if sam_len >= 10:
+    sample = sample.sample(10)
+else:
+    sample = pd.DataFrame(['There are not 10 samples to meet the criteria'])
+
+
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: Random sampling completed \n')
+
+if lnc['ACCOUNTS']==None:
+    sample = sample.drop(columns=['ACCOUNTS'])
 
 #%%
 low_score_threshold = 80
@@ -183,12 +206,12 @@ medium_score_threshold = 85
 high_score_threshold = 90
 perfect_score_threshold = 100
 #%%
-ln_count_before = len(matches['LOAN_NAME'].unique())
-rp_count_before = len(matches['RELATED_PARTY_NAME'].unique())
+ln_count_before = len(cross_df['LOAN_NAME'].unique())
+rp_count_before = len(cross_df['RELATED_PARTY_NAME'].unique())
 
 #%%
-non_matches = matches[matches['RATIO_BASE'] < low_score_threshold]
-matches = matches[matches['RATIO_BASE'] >= low_score_threshold]
+non_matches = cross_df[cross_df['RATIO_BASE'] < low_score_threshold]
+matches = cross_df[cross_df['RATIO_BASE'] >= low_score_threshold]
 
 #%%
 ln_match_series = pd.Series(matches['LOAN_NAME'].unique(), name='LOAN_NAME')
@@ -297,6 +320,8 @@ InfoDict = [
         ['', 'Medium Confidence Matches: RATIO_BASE >= ' + str(medium_score_threshold) + ' and < ' + str(high_score_threshold)],
         ['', 'Low Confidence Matches: RATIO_BASE >= ' + str(low_score_threshold) + ' and < ' + str(medium_score_threshold)],
         ['', 'All Matches: RATIO_BASE>= ' + str(low_score_threshold)],
+        ['', 'Sample: Random sample of 10 from all comparisons (every LOAN_NAME_BASE compared against every '
+             'RELATED_PARTY_NAME_BASE) containing no duplicated LOAN_NAME_BASEs or RELATED_PARTY_NAME_BASEs'],
         ['', 'Loans Evaluated: all loans and corresponding information evaluated'],
         ['', 'Related Parties Evaluated: all related parties and corresponding information evaluated'],
     ['Sources',
@@ -349,6 +374,7 @@ likely_matches.to_excel(writer, sheet_name='Likely Matches', index=False)
 medium_confidence.to_excel(writer, sheet_name='Medium Confidence Matches', index=False)
 low_confidence.to_excel(writer, sheet_name='Low Confidence Matches', index=False)
 matches.to_excel(writer, sheet_name='All Matches',index=False)
+sample.to_excel(writer, sheet_name='Sample', index=False)
 #matches_unique.to_excel(writer, sheet_name='Above Threshold', index=False)
 #non_matches.to_excel(writer, sheet_name='Below Threshold', index=False)
 ln_df_raw.to_excel(writer, sheet_name='Loans Evaluated', index=False)
@@ -359,8 +385,7 @@ workbook = writer.book
 info_worksheet = writer.sheets['Information']
 ln_df_raw = writer.sheets['Loans Evaluated']
 rp_raw_worksheet = writer.sheets['Related Parties Evaluated']
-#orksheet = writer.sheets['Below Threshold']
-#above_worksheet = writer.sheets['Above Threshold']
+sample_worksheet = writer.sheets['Sample']
 
 # Add some cell formats.
 
@@ -384,23 +409,23 @@ info_worksheet.conditional_format(4, 0, 4, 0, {'type': 'formula', 'criteria': 'T
 info_worksheet.conditional_format(12, 0, 12, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 info_worksheet.conditional_format(15, 0, 15, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 info_worksheet.conditional_format(21, 0, 21, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
-info_worksheet.conditional_format(26, 0, 32, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
+info_worksheet.conditional_format(26, 0, 33, 0, {'type': 'formula', 'criteria': 'True',  'format': formatbold})
 
 info_worksheet.conditional_format(0, 0, 0, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(3, 0, 3, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(11, 0, 11, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(14, 0, 14, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 info_worksheet.conditional_format(20, 0, 20, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
-info_worksheet.conditional_format(28, 0, 32, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
+info_worksheet.conditional_format(29, 0, 33, 0, {'type': 'formula', 'criteria': 'True',  'format': under_border_format})
 
 info_worksheet.conditional_format(0, 1, 0, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(3, 1, 3, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(11, 1, 11, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(14, 1, 14, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 info_worksheet.conditional_format(20, 1, 20, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
-info_worksheet.conditional_format(28, 1, 32, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
+info_worksheet.conditional_format(29, 1, 33, 1, {'type': 'formula', 'criteria': 'True',  'format': bottom_right_format})
 
-info_worksheet.conditional_format(1, 1, 25, 1, {'type': 'formula', 'criteria': 'True', 'format': right_format})
+info_worksheet.conditional_format(1, 1, 28, 1, {'type': 'formula', 'criteria': 'True', 'format': right_format})
 
 # Set the column width and format
 def set_match_worksheet_format(match_worksheet_name):
@@ -423,14 +448,13 @@ set_match_worksheet_format('Medium Confidence Matches')
 set_match_worksheet_format('Low Confidence Matches')
 set_match_worksheet_format('All Matches')
 
-# format non_matches
-#below_worksheet.freeze_panes(1, 1)
-#below_worksheet.set_column('A:A', 30, rp_color_format)
-#below_worksheet.set_column('B:B', 30, ln_color_format)
-
-#above_worksheet.freeze_panes(1, 1)
-#above_worksheet.set_column('A:A', 30, rp_color_format)
-#above_worksheet.set_column('B:B', 30, ln_color_format)
+sample_worksheet.set_column('A:A', 30, rp_color_format)
+sample_worksheet.set_column('B:B', 30, ln_color_format)
+sample_worksheet.set_column('C:C', 25, ln_color_format)
+sample_worksheet.set_column('D:D', 25, rp_color_format)
+sample_worksheet.set_column('E:E', 13, ratio_format)
+if lnc['ACCOUNTS'] is not None:
+    sample_worksheet.set_column('F:F', 30, ln_color_format)
 
 # Close the Pandas Excel writer and output the Excel file.
 writer.close()
