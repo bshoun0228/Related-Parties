@@ -13,15 +13,15 @@ print("Start: ", starttime)
 #%% ####################################################################################################################
 #############################################    FILL THIS OUT  ########################################################
 # Client Name (for export Name)
-client_name = 'SouthState DDA '  # what do you want files named?
+client_name = 'SouthState SAV'  # what do you want files named?
 export_path = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\2022 SouthState\Exports"  # where you want results
 
 # Put the filepath to the GL/Other data
-ln_df_filepath = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\2022 SouthState\Deposit COD Flat File for 12-31-2022 Audit v2 (3).xlsx"
+ln_df_filepath = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\2022 SouthState\Deposit SAV Flat File for 12-31-2022 Audit v2 (2).xlsx"
 
 # What column are we comparing? Enter the column headers for the Customer Name and Account columns
 ## If there is no Account column provided, type None
-lnc = {'LOAN_NAME': 'Primary Name', 'ACCOUNTS': 'Tax Id Number'}
+lnc = {'LOAN_NAME': 'Primary Name', 'ACCOUNTS': 'SAV Account'}
 # IF the column in the LASTNAME, FIRST NAME format, type 'YES' (CAPITAL)
 ln_reverse = 'NO'
 
@@ -70,7 +70,7 @@ rp_filename = rp_filepath.split("\\")[-1]
 # %% ignore words #NOTE: Real estate is added here for the info tab but is not removed when this list is applied due to space
 drop_words = ['FOUNDATION', 'HOLDINGS', 'MANAGEMENT', 'INVESTMENTS', 'PROPERTIES', 'INTERNATIONAL', 'THE', '401K',
               'PARTNERSHIP', 'LIMITED', 'ENTERPRISES', 'ASSOCIATES', 'PARTNERS', 'INVESTMENT', 'GROUP', 'COMPANY',
-              'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', '-', 'AND', '&',
+              'ASSOCIATION', '401 (K)', '401(K)', 'LLC', 'HOLDING', 'INVESTORS', '-', 'AND', '&', 'IRREV',
               'IRREVOCABLE', 'REVOCABLE', 'DESCENDANTS', 'TRUST', 'COMPANY', 'INCORPORATED', 'CORPORATION', 'CORP',
               'INC', 'LTDA', 'UNLTD', 'LTD', 'PLLC', 'LLC', 'LLP', 'LLLP', 'LP', 'REAL ESTATE']
 
@@ -187,12 +187,12 @@ sample = sample.drop_duplicates(subset=['RELATED_PARTY_BASE'])
 sample = sample.drop_duplicates(subset=['LOAN_BASE'])
 # Change the column order for formatting
 sample = sample[['RELATED_PARTY_NAME','LOAN_NAME', 'LOAN_BASE', 'RELATED_PARTY_BASE', 'RATIO_BASE', 'ACCOUNTS']]
-# Grab 10 random
+# Grab 25 random
 sam_len = len(sample)
-if sam_len >= 10:
-    sample = sample.sample(10)
+if sam_len >= 25:
+    sample = sample.sample(25)
 else:
-    sample = pd.DataFrame(['There are not 10 samples to meet the criteria'])
+    sample = pd.DataFrame(['There are not 25 samples to meet the criteria'])
 
 
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: Random sampling completed \n')
@@ -320,7 +320,7 @@ InfoDict = [
         ['', 'Medium Confidence Matches: RATIO_BASE >= ' + str(medium_score_threshold) + ' and < ' + str(high_score_threshold)],
         ['', 'Low Confidence Matches: RATIO_BASE >= ' + str(low_score_threshold) + ' and < ' + str(medium_score_threshold)],
         ['', 'All Matches: RATIO_BASE>= ' + str(low_score_threshold)],
-        ['', 'Sample: Random sample of 10 from all comparisons (every LOAN_NAME_BASE compared against every '
+        ['', 'Sample: Random sample of 25 from all comparisons (every LOAN_NAME_BASE compared against every '
              'RELATED_PARTY_NAME_BASE) containing no duplicated LOAN_NAME_BASEs or RELATED_PARTY_NAME_BASEs'],
         ['', 'Loans Evaluated: all loans and corresponding information evaluated'],
         ['', 'Related Parties Evaluated: all related parties and corresponding information evaluated'],
@@ -363,7 +363,7 @@ low_confidence = matches[(low_score_threshold <= matches['RATIO_BASE'])
 
 # Create a Pandas Excel writer using XlsxWriter as the engine.
 writer = pd.ExcelWriter(export_path + "\\" + client_name + '_RelatedParties.xlsx', engine='xlsxwriter')
-
+workbook = writer.book
 # Write each dataframe to a different worksheet.
 
 Info.to_excel(writer, sheet_name='Information', index=False)
@@ -377,7 +377,15 @@ matches.to_excel(writer, sheet_name='All Matches',index=False)
 sample.to_excel(writer, sheet_name='Sample', index=False)
 #matches_unique.to_excel(writer, sheet_name='Above Threshold', index=False)
 #non_matches.to_excel(writer, sheet_name='Below Threshold', index=False)
-ln_df_raw.to_excel(writer, sheet_name='Loans Evaluated', index=False)
+ln_df_raw.iloc[:1000000, :].to_excel(writer, sheet_name='Loans Evaluated', index=False)
+if len(ln_df_raw) > 1000000:
+    ln_df_raw.iloc[1000000:2000000].to_excel(writer, 'Loans Evaluated 2', index=False)
+    if len(ln_df_raw) > 2000000:
+        ln_df_raw.iloc[2000000:3000000].to_excel(writer, 'Loans Evaluated 3', index=False)
+        if len(ln_df_raw) > 3000000:
+            last_page = workbook.add_worksheet('Loans Evaluated 4')
+            last_page.write('A1', 'Over 3 million loans, please ask DAG for original file')
+
 rp_df_raw.to_excel(writer, sheet_name='Related Parties Evaluated', index=False)
 
 # Get the xlsxwriter objects from the dataframe writer object.
