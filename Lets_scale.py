@@ -17,16 +17,17 @@ client_name = 'Related Party PRO Demo'  # what do you want files named?
 export_path = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\Anon_Data"  # where you want results
 
 # Put the filepath to the GL/Other data
-ln_df_filepath = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\Anon_Data\Loan Flat File Anon.xlsx"
+ln_df_filepath = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\Anon_Data\Loan Flat File Anon.csv"
 
 # What column are we comparing? Enter the column headers for the Customer Name and Account columns
 ## If there is no Account column provided, type None
 lnc = {'LOAN_NAME': 'Customer Name', 'ACCOUNTS': 'Account Number'}
+
 # IF the column in the LASTNAME, FIRST NAME format, type 'YES' (CAPITAL)
 ln_reverse = 'NO'
 
 # Put the filepath to the related parties
-rp_filepath = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\Anon_Data\Related Parties Anon.xlsx"
+rp_filepath = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\Anon_Data\Related Parties Anon.csv"
 
 # What column are we comparing?
 rpc={'RP_NAME': 'RP NAME'}
@@ -38,16 +39,41 @@ rp_reverse = 'NO'
 logname = export_path + '\\' + client_name + " Related Parties Log.txt"
 
 # Have to initiate logger after getting client name so that can export log with including client name
-log = open(logname, "a+")
+log = open(logname, "w")
 log.write("-----RELATED PARTIES ANALYSIS RUN: " + datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + " -----\n\n")
 
 #%% Read in the data
-ln_df = pd.read_excel(ln_df_filepath, dtype=str)  # Read in the loan file
+
+# Read in the loan file
+if ln_df_filepath.endswith('.csv'):  # If it's a csv
+    try:
+        ln_df = pd.read_csv(ln_df_filepath, dtype=object, low_memory=False)  # Read in the loan file
+    except UnicodeDecodeError:  # If there is a unicode error (combined in alteryx or other program)
+        ln_df = pd.read_csv(str(ln_df_filepath), low_memory=False, dtype=object, encoding='latin-1')
+
+elif ln_df_filepath.endswith('.xlsx'):  # Else if it's an Excel file
+    ln_df = pd.read_excel(ln_df_filepath, dtype=str)
+else:
+    print('Loan File format not supported')  # otherwise we don't support this filetype
+
 ln_df_raw = ln_df.copy()
 ln_count = len(ln_df)
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + "Loan number of rows read in from file: " + str(ln_count) + '\n')
 
-rp_df = pd.read_excel(rp_filepath)  # Read in the related party file
+
+# Read in the related party file
+if rp_filepath.endswith('.csv'):  # If it's a csv
+    try:
+        rp_df = pd.read_csv(rp_filepath, dtype=object, low_memory=False)  # Read in the loan file
+    except UnicodeDecodeError:  # If there is a unicode error (combined in alteryx or other program)
+        rp_df = pd.read_csv(rp_filepath, low_memory=False, dtype=object, encoding='latin-1')
+
+elif rp_filepath.endswith('.xlsx'):  # Else if it's an Excel file
+    rp_df = pd.read_excel(rp_filepath, dtype=str)
+else:
+    print('Related Party File format not supported')  # otherwise we don't support this filetype
+
+
 rp_df_raw = rp_df.copy()
 rp_count = len(rp_df)
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + "Related Parties number of rows read in from file: " + str(rp_count) + '\n\n')
