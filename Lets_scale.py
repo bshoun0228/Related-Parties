@@ -30,7 +30,7 @@ ln_reverse = 'NO'
 rp_filepath = r"C:\Users\kl8475\OneDrive - FORVIS, LLP\Related Parties Examples\Anon_Data\Related Parties Anon.csv"
 
 # What column are we comparing?
-rpc={'RP_NAME': 'RP NAME'}
+rpc = {'RP_NAME': 'RP NAME'}
 # Is this column in the LASTNAME, FIRST NAME format?
 rp_reverse = 'NO'
 
@@ -41,6 +41,10 @@ logname = export_path + '\\' + client_name + " Related Parties Log.txt"
 # Have to initiate logger after getting client name so that can export log with including client name
 log = open(logname, "w")
 log.write("-----RELATED PARTIES ANALYSIS RUN: " + datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + " -----\n\n")
+
+#%% Pull out the filenames for the info tab and log
+ln_df_filename = ln_df_filepath.split("\\")[-1]  # Take everything after the last slash - the filename
+rp_filename = rp_filepath.split("\\")[-1]
 
 #%% Read in the data
 
@@ -58,7 +62,9 @@ else:
 
 ln_df_raw = ln_df.copy()
 ln_count = len(ln_df)
-log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + "Loan number of rows read in from file: " + str(ln_count) + '\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: Loan file (' + ln_df_filename +
+          ') was read in from filepath: ' + ln_df_filepath + '\n')
+
 
 
 # Read in the related party file
@@ -76,7 +82,36 @@ else:
 
 rp_df_raw = rp_df.copy()
 rp_count = len(rp_df)
-log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + "Related Parties number of rows read in from file: " + str(rp_count) + '\n\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: Related Parties file (' + rp_filename +
+          ') was read in from filepath: ' + rp_filepath + '\n')
+
+#%% Do some logging
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: Loan column mappings: ' +
+          str(lnc) + '\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: Related Parties column mappings: ' +
+          str(rpc) + '\n')
+
+if ln_reverse == 'YES':  # if df_reverse selected as yes, reverse the order of the string at the comma
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: The ' + lnc['LOAN_NAME'] +
+              ' column was in LAST, FIRST order which was changed to FIRST LAST' + '\n')
+else:  # if df_reverse was not selected as yes, remove the comma
+    info_df_reverse = 'The ' + lnc['LOAN_NAME'] + ' column was in FIRST LAST order which was not changed'
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: The ' + lnc['LOAN_NAME'] +
+              ' column was in FIRST LAST order which was not changed' + '\n')
+if rp_reverse == 'YES':
+    info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in LAST, FIRST order which was changed to FIRST LAST'
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: The ' + rpc['RP_NAME'] +
+              ' column was in LAST, FIRST order which was changed to FIRST LAST' + '\n')
+else:
+    info_rp_reverse = 'The ' + rpc['RP_NAME'] + ' column was in FIRST LAST order which was not changed'
+    log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: The ' + rpc['RP_NAME'] +
+              ' column was in FIRST LAST order which was not changed' + '\n')
+
+log.write('\n' + datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' +
+          "Loan number of rows read in from file: " + str(ln_count) + '\n')
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' +
+          "Related Parties number of rows read in from file: " + str(rp_count) + '\n\n')
+
 #%%
 if lnc['ACCOUNTS'] == None:
     ln_df['ACCOUNTS'] = np.nan
@@ -89,9 +124,7 @@ ln_df['ACCOUNTS'] = ln_df['ACCOUNTS'].astype(str) # defensive - make sure it is 
 rp_df = rp_df.rename(columns={rpc['RP_NAME']:'RELATED_PARTY_NAME'})  # Rename the column
 rp_df = rp_df[['RELATED_PARTY_NAME']]  # Only keep that column
 
-#%% Pull out the filenames for the info tab
-ln_df_filename = ln_df_filepath.split("\\")[-1]  # Take everything after the last slash - the filename
-rp_filename = rp_filepath.split("\\")[-1]
+
 
 # %% ignore words #NOTE: Real estate is added here for the info tab but is not removed when this list is applied due to space
 drop_words = ['FOUNDATION', 'HOLDINGS', 'MANAGEMENT', 'INVESTMENTS', 'PROPERTIES', 'INTERNATIONAL', 'THE', '401K',
@@ -116,7 +149,7 @@ def make_base_names(df, original_col, base_col, reverse):
     df[original_col] = df[original_col].str.strip()
     # have to drop duplicates again after cleaning
     df = df.dropna(subset=[original_col])  # Drop blank rows again after
-    #df = df.drop_duplicates(subset=[original_col, 'ACCOUNTS'])  # drop duplicates
+    # df = df.drop_duplicates(subset=[original_col, 'ACCOUNTS'])  # drop duplicates
     # Create the BASE column off the cleaned column
     df[base_col] = df[original_col].str.replace(r'\.', ' ', regex=True) # remove periods
     df[base_col] = df[base_col].str.replace(r"\'", "", regex=True) # remove apostrophes
@@ -281,10 +314,10 @@ matches = matches.dropna(how='all', axis=0)
 matches = matches[['RELATED_PARTY_NAME','LOAN_NAME', 'LOAN_BASE', 'RELATED_PARTY_BASE', 'RATIO_BASE', 'RATIO_ORDER', 'RATIO_FULL', 'ACCOUNTS']]
 matches = matches.sort_values(by=['RATIO_BASE', 'RATIO_ORDER'], ascending=(False, False))
 
-#%%
-if ln_reverse == 'YES': # if df_reverse selected as yes, reverse the order of the string at the comma
+#%% Add the same logic from the log to the information tab
+if ln_reverse == 'YES':  # if df_reverse selected as yes, reverse the order of the string at the comma
     info_df_reverse = 'The ' + lnc['LOAN_NAME'] + ' column was in LAST, FIRST order which was changed to FIRST LAST'
-else: # if df_reverse was not selected as yes, remove the comma
+else:  # if df_reverse was not selected as yes, remove the comma
     info_df_reverse = 'The ' + lnc['LOAN_NAME'] + ' column was in FIRST LAST order which was not changed'
 
 if rp_reverse == 'YES':
@@ -299,12 +332,6 @@ if lnc['ACCOUNTS']==None:
 #%% Last count for log
 ln_count = len(matches['LOAN_NAME'].unique())
 rp_count = len(matches['RELATED_PARTY_NAME'].unique())
-
-#log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_count) + ' unique LOAN_NAMES were export to Above Threshold worksheet' + '\n')
-#log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(ln_nonmatch_count) + ' unique LOAN_NAMES were export to the Below Threshold worksheet' + '\n\n')
-
-#log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_count) + ' unique RELATED_PARTY_NAMES were export to Above Threshold worksheet' + '\n')
-#log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(rp_nonmatch_count) + ' unique RELATED_PARTY_NAMES were export to the Below Threshold worksheet' + '\n\n')
 
 log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: ' + str(len(ln_df_raw)) + ' LOAN_NAMES '
                                             'were evaluated and export to the "Loans Evaluated" worksheet' + '\n')
