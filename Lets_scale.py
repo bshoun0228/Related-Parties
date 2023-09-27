@@ -520,6 +520,11 @@ if lnc['ACCOUNTS'] is not None:
 # Close the Pandas Excel writer and output the Excel file.
 writer.close()
 
+#%%
+log.write("\n")
+
+log.write(datetime.datetime.now().strftime('%d-%b-%y %H:%M:%S') + ' [INFO]: Results exported to: ' + export_path +
+          "\\" + client_name + '_RelatedParties.xlsx')
 
 log.write("\n")
 log.write("\n")
