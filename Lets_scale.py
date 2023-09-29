@@ -492,21 +492,21 @@ info_worksheet.conditional_format(4, 0, 4, 0, {'type': 'formula', 'criteria': 'T
 info_worksheet.conditional_format(12, 0, 12, 0, {'type': 'formula', 'criteria': 'True', 'format': formatbold})
 info_worksheet.conditional_format(15, 0, 15, 0, {'type': 'formula', 'criteria': 'True', 'format': formatbold})
 info_worksheet.conditional_format(21, 0, 21, 0, {'type': 'formula', 'criteria': 'True', 'format': formatbold})
-info_worksheet.conditional_format(26, 0, 33, 0, {'type': 'formula', 'criteria': 'True', 'format': formatbold})
+info_worksheet.conditional_format(26, 0, 30, 0, {'type': 'formula', 'criteria': 'True', 'format': formatbold})
 
 info_worksheet.conditional_format(0, 0, 0, 0, {'type': 'formula', 'criteria': 'True', 'format': under_border_format})
 info_worksheet.conditional_format(3, 0, 3, 0, {'type': 'formula', 'criteria': 'True', 'format': under_border_format})
 info_worksheet.conditional_format(11, 0, 11, 0, {'type': 'formula', 'criteria': 'True', 'format': under_border_format})
 info_worksheet.conditional_format(14, 0, 14, 0, {'type': 'formula', 'criteria': 'True', 'format': under_border_format})
 info_worksheet.conditional_format(20, 0, 20, 0, {'type': 'formula', 'criteria': 'True', 'format': under_border_format})
-info_worksheet.conditional_format(29, 0, 33, 0, {'type': 'formula', 'criteria': 'True', 'format': under_border_format})
+info_worksheet.conditional_format(29, 0, 30, 0, {'type': 'formula', 'criteria': 'True', 'format': under_border_format})
 
 info_worksheet.conditional_format(0, 1, 0, 1, {'type': 'formula', 'criteria': 'True', 'format': bottom_right_format})
 info_worksheet.conditional_format(3, 1, 3, 1, {'type': 'formula', 'criteria': 'True', 'format': bottom_right_format})
 info_worksheet.conditional_format(11, 1, 11, 1, {'type': 'formula', 'criteria': 'True', 'format': bottom_right_format})
 info_worksheet.conditional_format(14, 1, 14, 1, {'type': 'formula', 'criteria': 'True', 'format': bottom_right_format})
 info_worksheet.conditional_format(20, 1, 20, 1, {'type': 'formula', 'criteria': 'True', 'format': bottom_right_format})
-info_worksheet.conditional_format(29, 1, 33, 1, {'type': 'formula', 'criteria': 'True', 'format': bottom_right_format})
+info_worksheet.conditional_format(29, 1, 30, 1, {'type': 'formula', 'criteria': 'True', 'format': bottom_right_format})
 
 info_worksheet.conditional_format(1, 1, 28, 1, {'type': 'formula', 'criteria': 'True', 'format': right_format})
 
