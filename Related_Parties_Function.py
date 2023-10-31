@@ -6,11 +6,6 @@ from fuzzywuzzy import fuzz
 import numpy as np
 import datetime
 
-#%%
-
-starttime = datetime.datetime.now()
-print("Start: ", starttime)
-
 
 #%%
 def run_related_parties(client_name, export_path, ln_df_filepath, lnc, ln_reverse, rp_filepath, rpc, rp_reverse):
@@ -531,21 +526,5 @@ def run_related_parties(client_name, export_path, ln_df_filepath, lnc, ln_revers
     log.write("\n")
     log.write("\n")
     log.close()
-
-    # %%
-def convert(seconds):
-    seconds = seconds % (24 * 3600)
-    hour = seconds // 3600
-    seconds %= 3600
-    minutes = seconds // 60
-    seconds %= 60
-
-    return "%d:%02d:%02d" % (hour, minutes, seconds)
-
-endtime = datetime.datetime.now()
-print("End: ", endtime)
-run_time = (endtime - starttime)
-run_seconds = run_time.total_seconds()
-print("Runtime (HH:MM:SS): ", convert(run_seconds))
 
 
